@@ -1,0 +1,11 @@
+*.pyc
+__pycache__/
+node_modules/
+.venv/
+venv/
+dist/
+.firebase/
+*.local
+web/.env
+functions/.env
+.DS_Store
