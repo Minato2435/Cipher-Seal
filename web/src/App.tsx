@@ -3,6 +3,7 @@ import { LatticeField } from "./components/LatticeField";
 import { RequireAdmin, RequireAuth } from "./components/RequireAuth";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
+import { Chat } from "./pages/Chat";
 
 function Placeholder({ title }: { title: string }) {
   return (
@@ -26,7 +27,7 @@ export function App() {
           path="/"
           element={
             <RequireAuth>
-              <Placeholder title="Chat" />
+              <Chat />
             </RequireAuth>
           }
         />
