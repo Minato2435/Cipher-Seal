@@ -48,3 +48,4 @@ def test_training_matrix_shape_and_model_separates_attacks():
     af = extract_features(atk_ev, now=NOW, window_seconds=WIN)
     a_assess = assess(af, model.raw_score(features_to_vector(af)), t)
     assert a_assess.score > n_assess.score
+    assert a_assess.band in ("HIGH", "CRITICAL")

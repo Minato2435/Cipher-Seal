@@ -1,8 +1,13 @@
 """Isolation Forest wrapper that emits a stable 0..1 anomaly score.
 
 The raw ``decision_function`` output is unbounded and model-specific, so at train
-time we record the 5th/95th percentiles of ``-decision_function`` over the
+time we record the 5th/99th percentiles of ``-decision_function`` over the
 training set and later min-max normalise against that range.
+
+The upper anchor is the 99th rather than the 95th percentile on purpose: the
+anchor is what saturates ``raw_score`` at 1.0, and a p95 anchor guarantees that
+5% of *training-normal* traffic normalises to a maximal anomaly score -- which,
+blended at 0.60 with no rule boost, is enough to reach HIGH on its own.
 """
 
 from __future__ import annotations
@@ -68,5 +73,5 @@ def train_model(
     ).fit(x)
     anomaly = -forest.decision_function(x)
     p_low = float(np.percentile(anomaly, 5))
-    p_high = float(np.percentile(anomaly, 95))
+    p_high = float(np.percentile(anomaly, 99))
     return RiskModel(scaler=scaler, forest=forest, p_low=p_low, p_high=p_high)
