@@ -6,19 +6,20 @@ import functools
 import json
 import urllib.request
 
-import firebase_admin
 from firebase_functions import firestore_fn, https_fn
 from firebase_functions.params import SecretParam
 
 from quantumsafe.fb import enforcement, identity, messaging, repo, scoring, sessions, simulation
 from quantumsafe.fb import events as fb_events
-from quantumsafe.fb.client import get_db
+from quantumsafe.fb.client import _ensure_app, get_db
 from quantumsafe.fb.config import DATABASE, REGION
 from quantumsafe.fb.errors import FORBIDDEN, REAUTH_REQUIRED, AppError, to_https_error
-from quantumsafe.security.events import RE_AUTH_FAIL, RE_AUTH_OK
+from quantumsafe.security.events import LOGIN_FAIL, RE_AUTH_FAIL, RE_AUTH_OK
 
-if not firebase_admin._apps:
-    firebase_admin.initialize_app()
+# Single Firebase init path: `_ensure_app` prefers functions/serviceAccountKey.json
+# locally and falls back to ADC in Cloud Functions. Initialising here directly
+# would race with it depending on import order.
+_ensure_app()
 
 APP_SECRET = SecretParam("APP_SECRET")
 WEB_API_KEY = "AIzaSyCKr9ISLAHwCKCMcmrgGhxpxBa7dSKqYYA"  # public by design
@@ -45,6 +46,12 @@ def _guard(fn):
             return fn(req)
         except AppError as err:
             raise to_https_error(err) from err
+        except (KeyError, ValueError) as err:
+            # A missing `req.data` field or an invalid enum value (e.g.
+            # set_status's status) is a client mistake, not a server fault.
+            raise https_fn.HttpsError(
+                code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT, message=str(err)
+            ) from err
 
     return wrapper
 
@@ -108,7 +115,12 @@ def reauth(req: https_fn.CallableRequest):
     email = (req.auth.token or {}).get("email")
     ok = bool(email) and _verify_password(email, (req.data or {}).get("password", ""))
     if not ok:
+        # Record BOTH: RE_AUTH_FAIL is the audit-accurate type, but
+        # features.extract_features only counts LOGIN_FAIL for the
+        # login_fail_count / login_fail_rate features and the +0.40 rule boost,
+        # so without it a real brute force against reauth scores zero risk.
         fb_events.record_event(db, uid, RE_AUTH_FAIL)
+        fb_events.record_event(db, uid, LOGIN_FAIL)
         raise AppError(REAUTH_REQUIRED, "re-authentication failed")
 
     repo.merge(db, "users", uid, {"reauthAt": repo.SERVER_TIMESTAMP})
@@ -143,16 +155,26 @@ def admin_set_status(req: https_fn.CallableRequest):
 
 
 @firestore_fn.on_document_created(
-    document="securityEvents/{eventId}", database=DATABASE, region=REGION, secrets=[APP_SECRET]
+    document="securityEvents/{eventId}",
+    database=DATABASE,
+    region=REGION,
+    secrets=[APP_SECRET],
+    # Serialise trigger invocations: a simulated-attack burst writes up to 40
+    # events, and concurrent rescore/apply_policy runs against one riskScores
+    # doc produce a non-deterministic end state.
+    max_instances=1,
 )
 def on_security_event_created(event: firestore_fn.Event[firestore_fn.DocumentSnapshot | None]) -> None:
     snap = event.data
     if snap is None:
         return
-    uid = snap.get("uid")
-    if not uid:
-        return
+    uid = None
     try:
+        # `DocumentSnapshot.get` raises KeyError on a missing field, so the
+        # malformed-event guard must live inside the try.
+        uid = (snap.to_dict() or {}).get("uid")
+        if not uid:
+            return
         db = get_db()
         assessment, previous = scoring.rescore_user(db, uid)
         enforcement.apply_policy(db, uid, assessment, previous)

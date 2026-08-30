@@ -33,4 +33,15 @@ def run_simulated_attack(db, target_uid: str, kind: str) -> int:
 
     for ev in events:
         record_event(db, target_uid, ev.type, {**ev.meta, "simulated": True})
+
+    # Score/enforce ONCE, synchronously, after the whole burst. The per-event
+    # trigger firings race each other against a single riskScores doc, so the
+    # end state would otherwise be non-deterministic; this run makes it correct
+    # regardless of trigger timing (the trigger firings converge to the same
+    # state and become redundant no-ops).
+    from quantumsafe.fb import enforcement, scoring
+
+    assessment, previous = scoring.rescore_user(db, target_uid)
+    enforcement.apply_policy(db, target_uid, assessment, previous)
+
     return len(events)
