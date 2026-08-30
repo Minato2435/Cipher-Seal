@@ -2,21 +2,20 @@
 
 from __future__ import annotations
 
+import functools
 import json
-import time
 import urllib.request
 
 import firebase_admin
 from firebase_functions import firestore_fn, https_fn
 from firebase_functions.params import SecretParam
 
-from quantumsafe.fb import enforcement, identity, messaging, repo, scoring, sessions
+from quantumsafe.fb import enforcement, identity, messaging, repo, scoring, sessions, simulation
 from quantumsafe.fb import events as fb_events
 from quantumsafe.fb.client import get_db
 from quantumsafe.fb.config import DATABASE, REGION
 from quantumsafe.fb.errors import FORBIDDEN, REAUTH_REQUIRED, AppError, to_https_error
-from quantumsafe.security.events import RE_AUTH_FAIL, RE_AUTH_OK, SIM_ATTACK
-from quantumsafe.ai.synthetic import generate_attack_events
+from quantumsafe.security.events import RE_AUTH_FAIL, RE_AUTH_OK
 
 if not firebase_admin._apps:
     firebase_admin.initialize_app()
@@ -40,13 +39,13 @@ def _secret() -> bytes:
 
 
 def _guard(fn):
+    @functools.wraps(fn)
     def wrapper(req: https_fn.CallableRequest):
         try:
             return fn(req)
         except AppError as err:
             raise to_https_error(err) from err
 
-    wrapper.__name__ = fn.__name__
     return wrapper
 
 
@@ -129,17 +128,7 @@ def simulate_attack(req: https_fn.CallableRequest):
     if target != uid and (req.auth.token or {}).get("role") != "admin":
         raise AppError(FORBIDDEN, "only an admin can target another user")
 
-    import numpy as np
-
-    db = get_db()
-    now = time.time()
-    synth = generate_attack_events(np.random.default_rng(), target, now, 300.0, kind=kind)
-    count = 0
-    for ev in synth:
-        fb_events.record_event(db, target, ev.type, {**ev.meta, "simulated": True})
-        count += 1
-    fb_events.record_event(db, target, SIM_ATTACK, {"kind": kind})
-    return {"events": count + 1}
+    return {"events": simulation.run_simulated_attack(get_db(), target, kind)}
 
 
 @https_fn.on_call(**_CALL)
@@ -163,6 +152,10 @@ def on_security_event_created(event: firestore_fn.Event[firestore_fn.DocumentSna
     uid = snap.get("uid")
     if not uid:
         return
-    db = get_db()
-    assessment, previous = scoring.rescore_user(db, uid)
-    enforcement.apply_policy(db, uid, assessment, previous)
+    try:
+        db = get_db()
+        assessment, previous = scoring.rescore_user(db, uid)
+        enforcement.apply_policy(db, uid, assessment, previous)
+    except Exception as e:  # a single bad event must not leave the function erroring
+        print(f"on_security_event_created failed for {uid}: {e!r}")
+        return

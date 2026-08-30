@@ -10,7 +10,13 @@ from quantumsafe.security.policy import STATUS_FOR, decide
 
 def _sync_claim(uid: str, status: str) -> None:
     auth = get_auth()
-    existing = dict(auth.get_user(uid).custom_claims or {})
+    try:
+        user = auth.get_user(uid)
+    except auth.UserNotFoundError:
+        # A security event can reference a uid with no Auth record (test/seed
+        # data, deleted users); Firestore state is still updated by the caller.
+        return
+    existing = dict(user.custom_claims or {})
     if existing.get("status") != status:
         existing["status"] = status
         auth.set_custom_user_claims(uid, existing)
@@ -19,7 +25,13 @@ def _sync_claim(uid: str, status: str) -> None:
 def _terminate_sessions(db, uid: str) -> None:
     for sid, _ in repo.query_active_sessions_for(db, uid):
         db.collection(collection("sessions")).document(sid).update({"state": "terminated"})
-    get_auth().revoke_refresh_tokens(uid)
+    auth = get_auth()
+    try:
+        auth.revoke_refresh_tokens(uid)
+    except auth.UserNotFoundError:
+        # uid with no Auth record (test/seed data); Firestore sessions are still
+        # terminated above.
+        return
 
 
 def apply_policy(db, uid: str, assessment, previous_band: str):

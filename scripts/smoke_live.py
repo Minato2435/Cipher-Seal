@@ -33,11 +33,13 @@ def main() -> int:
             break
         time.sleep(5)
 
-    # cleanup
+    # cleanup — the trigger's apply_policy also creates users/<uid> via repo.merge
     from quantumsafe.fb.config import collection
     db.collection(collection("securityEvents")).document(eid).delete()
     if repo.get(db, "riskScores", uid) is not None:
         db.collection(collection("riskScores")).document(uid).delete()
+    if repo.get(db, "users", uid) is not None:
+        db.collection(collection("users")).document(uid).delete()
 
     print("TRIGGER OK" if ok else "TRIGGER TIMEOUT")
     return 0 if ok else 1

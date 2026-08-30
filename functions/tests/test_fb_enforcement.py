@@ -60,6 +60,17 @@ def test_admin_set_status_normal_clears_block(db, auth_user):
     assert any(p["actor"] == "admin" for p in _all(db, "policyActions"))
 
 
+def test_apply_policy_tolerates_uid_with_no_auth_user(db):
+    uid = "ghost-uid-no-auth-record"
+    repo.merge(db, "users", uid, {"status": "normal"})
+
+    action = enforcement.apply_policy(db, uid, _assessment("HIGH", 0.7), "NORMAL")
+
+    assert action.action == "TERMINATE_SESSIONS"
+    assert repo.get(db, "users", uid)["status"] == "high"
+    assert any(p["toBand"] == "HIGH" and p["uid"] == uid for p in _all(db, "policyActions"))
+
+
 def _all(db, base):
     from quantumsafe.fb.config import collection
     return [d.to_dict() for d in db.collection(collection(base)).stream()]
