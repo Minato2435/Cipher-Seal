@@ -38,10 +38,11 @@ export function Register() {
   return (
     <AuthShell
       title="Create an account"
+      subtitle="Registering generates your post-quantum keypair."
       footer={
         <>
           Already have an account?{" "}
-          <Link to="/login" className="text-ink underline">
+          <Link to="/login" className="text-quantum font-semibold">
             Sign in
           </Link>
         </>
@@ -65,13 +66,9 @@ export function Register() {
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="new-password"
         />
-        {error && <p className="text-sm text-high">{error}</p>}
-        <button
-          type="submit"
-          disabled={busy}
-          className="w-full bg-ink px-4 py-2.5 font-sans text-sm font-semibold text-paper disabled:opacity-50"
-        >
-          {busy ? "Setting up your keys…" : "Create account"}
+        {error && <p className="text-[13px] text-risk-high">{error}</p>}
+        <button type="submit" disabled={busy} className="btn btn-primary w-full">
+          {busy ? "Generating your keypair…" : "Create account"}
         </button>
       </form>
     </AuthShell>

@@ -30,10 +30,11 @@ export function Login() {
   return (
     <AuthShell
       title="Sign in"
+      subtitle="Your keys are unlocked on this device."
       footer={
         <>
           New here?{" "}
-          <Link to="/register" className="text-ink underline">
+          <Link to="/register" className="text-quantum font-semibold">
             Create an account
           </Link>
         </>
@@ -56,12 +57,8 @@ export function Login() {
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="current-password"
         />
-        {error && <p className="text-sm text-high">{error}</p>}
-        <button
-          type="submit"
-          disabled={busy}
-          className="w-full bg-ink px-4 py-2.5 font-sans text-sm font-semibold text-paper disabled:opacity-50"
-        >
+        {error && <p className="text-[13px] text-risk-high">{error}</p>}
+        <button type="submit" disabled={busy} className="btn btn-primary w-full">
           {busy ? "Signing in…" : "Sign in"}
         </button>
       </form>
