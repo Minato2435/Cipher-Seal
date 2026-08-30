@@ -1,38 +1,24 @@
-/**
- * The main column before a session is picked. A clean drawing of the ML-KEM
- * lattice with its two basis vectors and the "shortest vector" a quantum
- * computer still can't shortcut — plus the one instruction.
- */
 export function EmptyThread() {
-  const b1 = { x: 78, y: 0 };
-  const b2 = { x: 28, y: 70 };
-  const pts: { x: number; y: number }[] = [];
-  for (let i = -3; i <= 4; i++)
-    for (let j = -2; j <= 3; j++)
-      pts.push({ x: i * b1.x + j * b2.x, y: i * b1.y + j * b2.y });
-
   return (
     <div className="grid flex-1 place-items-center px-8">
       <div className="max-w-md text-center">
-        <svg
-          viewBox="-190 -170 380 320"
-          className="mx-auto h-44 w-full text-ink-soft"
-          aria-hidden="true"
-        >
-          {pts.map((p, k) => (
-            <circle key={k} cx={p.x} cy={p.y} r={2} fill="currentColor" opacity={0.5} />
-          ))}
-          {/* basis vectors */}
-          <line x1="0" y1="0" x2={b1.x} y2={b1.y} stroke="#14181F" strokeWidth="1.5" />
-          <line x1="0" y1="0" x2={b2.x} y2={b2.y} stroke="#14181F" strokeWidth="1.5" />
-          {/* the short "hard" vector */}
-          <line x1="0" y1="0" x2={b2.x - b1.x} y2={b2.y - b1.y} stroke="#C1541F" strokeWidth="2.5" />
-          <circle cx="0" cy="0" r="3.5" fill="#14181F" />
-        </svg>
-        <h2 className="mt-6 font-display text-3xl text-ink">Pick a session, or start one</h2>
-        <p className="mt-2 text-sm text-ink-soft">
-          Every session opens with an ML-KEM exchange — a lattice problem with no quantum shortcut.
-          Paste a peer's user ID in the sidebar to begin.
+        <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl grad-quantum shadow-[0_10px_40px_-8px_rgba(124,92,255,.6)]">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M12 2 4 6v6c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6l-8-4Z"
+              stroke="#0A0D16"
+              strokeWidth="1.6"
+              strokeLinejoin="round"
+            />
+            <path d="m9 12 2 2 4-4.5" stroke="#0A0D16" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+        </div>
+        <h2 className="mt-6 font-display text-2xl font-semibold text-text">
+          Pick a conversation, or start one
+        </h2>
+        <p className="mt-2 text-[13.5px] leading-relaxed text-faint">
+          Every conversation opens with an ML-KEM key exchange — a lattice problem with no quantum
+          shortcut. Paste a peer's user ID in the sidebar to begin.
         </p>
       </div>
     </div>

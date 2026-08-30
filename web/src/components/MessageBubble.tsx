@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { api, ApiError } from "../lib/api";
 import type { Message } from "../lib/useMessages";
 
-// one shared plaintext cache so re-renders don't re-call read_message
 const plaintextCache = new Map<string, string>();
 
 type State =
@@ -44,31 +43,48 @@ export function MessageBubble({ msg, mineUid }: { msg: Message; mineUid: string 
     minute: "2-digit",
   });
 
+  const tampered = state.kind === "tampered";
+
   return (
-    <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-      <div className="max-w-[68%]">
+    <div className={`flex animate-rise-in ${mine ? "justify-end" : "justify-start"}`}>
+      <div className="max-w-[72%]">
         <div
-          className={`px-3 py-2 text-[14px] leading-snug ${
-            state.kind === "tampered"
-              ? "border border-high text-high"
+          className={`rounded-2xl px-3.5 py-2.5 text-[14px] leading-snug ${
+            tampered
+              ? "border border-risk-high/60 bg-risk-high/10 text-risk-high"
               : mine
-                ? "bg-instrument/5 text-ink"
-                : "bg-white text-ink"
-          }`}
+                ? "text-text"
+                : "glass text-text"
+          } ${mine && !tampered ? "rounded-br-md" : ""} ${!mine && !tampered ? "rounded-bl-md" : ""}`}
+          style={
+            mine && !tampered
+              ? {
+                  background:
+                    "linear-gradient(135deg, rgba(124,92,255,.18), rgba(61,214,208,.12))",
+                  border: "1px solid rgba(124,92,255,.35)",
+                }
+              : undefined
+          }
         >
-          {state.kind === "loading" && <span className="font-mono text-ink-soft">···</span>}
+          {state.kind === "loading" && (
+            <span className="font-mono text-muted">
+              <span className="inline-block animate-pulse">decrypting…</span>
+            </span>
+          )}
           {state.kind === "ok" && state.text}
-          {state.kind === "tampered" && "⚠ signature check failed — message rejected"}
+          {tampered && "⚠ signature check failed — message rejected"}
           {state.kind === "error" && (
-            <span className="font-mono text-ink-soft">couldn't open this message</span>
+            <span className="font-mono text-muted">couldn't open this message</span>
           )}
         </div>
         <p
-          className={`mt-1 font-mono text-[10px] text-ink-soft ${mine ? "text-right" : "text-left"}`}
+          className={`mt-1 flex items-center gap-1.5 font-mono text-[10px] text-faint ${
+            mine ? "justify-end" : "justify-start"
+          }`}
         >
           {time}
           {msg.verified === true && state.kind === "ok" && (
-            <span className="ml-1.5 text-ink">✓ verified</span>
+            <span className="text-quantum font-semibold">✓ verified</span>
           )}
         </p>
       </div>

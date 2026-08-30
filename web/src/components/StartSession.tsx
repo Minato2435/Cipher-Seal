@@ -1,7 +1,11 @@
 import { type FormEvent, useState } from "react";
 import { api, ApiError } from "../lib/api";
 
-export function StartSession({ onStarted }: { onStarted: (sessionId: string) => void }) {
+export function StartSession({
+  onStarted,
+}: {
+  onStarted: (sessionId: string, peerUid: string) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [peer, setPeer] = useState("");
   const [busy, setBusy] = useState(false);
@@ -17,15 +21,12 @@ export function StartSession({ onStarted }: { onStarted: (sessionId: string) => 
       const { sessionId } = await api.establishSession(uid);
       setPeer("");
       setOpen(false);
-      onStarted(sessionId);
+      onStarted(sessionId, uid);
     } catch (err) {
-      if (err instanceof ApiError && err.code === "PEER_NOT_READY") {
+      if (err instanceof ApiError && err.code === "PEER_NOT_READY")
         setError("That user hasn't set up their keys yet — ask them to sign in once.");
-      } else if (err instanceof ApiError && err.code === "NOT_FOUND") {
-        setError("No user with that ID.");
-      } else {
-        setError("Couldn't start the session. Check the ID and try again.");
-      }
+      else if (err instanceof ApiError && err.code === "NOT_FOUND") setError("No user with that ID.");
+      else setError("Couldn't start the session. Check the ID and try again.");
       setBusy(false);
     }
   }
@@ -34,37 +35,34 @@ export function StartSession({ onStarted }: { onStarted: (sessionId: string) => 
     <div className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="font-mono text-[11px] text-ink underline decoration-dotted hover:decoration-solid"
+        className="grid h-7 w-7 place-items-center rounded-lg border border-line text-muted transition hover:border-violet/60 hover:text-text"
+        aria-label="New conversation"
       >
-        {open ? "close" : "+ new"}
+        {open ? "×" : "+"}
       </button>
 
       {open && (
         <form
           onSubmit={submit}
-          className="absolute right-0 top-6 z-20 w-64 space-y-2 border border-ink/25 bg-paper p-3 shadow-lg"
+          className="glass absolute right-0 top-9 z-30 w-72 space-y-2.5 rounded-xl p-3.5 shadow-2xl"
         >
-          <label className="block text-[12px] font-medium text-ink">
+          <label className="block text-[12px] font-medium text-text">
             Peer's user ID
             <input
               autoFocus
               value={peer}
               onChange={(e) => setPeer(e.target.value)}
               placeholder="uGrMQRQ…"
-              className="mt-1 w-full border border-ink/25 bg-white px-2 py-1.5 font-mono text-[12px] outline-none focus:border-ink"
+              className="input mt-1.5 font-mono text-[12px]"
             />
           </label>
-          <p className="text-[11px] text-ink-soft">
-            They copy it from the <span className="text-ink">id</span> chip at the top of their
+          <p className="text-[11px] leading-relaxed text-faint">
+            They copy it from the <span className="text-muted">id</span> chip at the top of their
             sidebar.
           </p>
-          {error && <p className="text-[12px] text-high">{error}</p>}
-          <button
-            type="submit"
-            disabled={busy}
-            className="w-full bg-ink px-3 py-1.5 font-sans text-[12px] font-semibold text-paper disabled:opacity-50"
-          >
-            {busy ? "Establishing key exchange…" : "Start session"}
+          {error && <p className="text-[12px] text-risk-high">{error}</p>}
+          <button type="submit" disabled={busy} className="btn btn-primary w-full">
+            {busy ? "Running key exchange…" : "Start secure channel"}
           </button>
         </form>
       )}

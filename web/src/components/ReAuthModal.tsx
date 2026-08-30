@@ -1,7 +1,6 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { api } from "../lib/api";
 
-/** Shown when the risk engine wants the user to confirm identity before sending. */
 export function ReAuthModal({
   onConfirmed,
   onCancel,
@@ -37,10 +36,10 @@ export function ReAuthModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-ink/40 px-6">
-      <div role="dialog" aria-modal="true" className="w-full max-w-sm bg-paper p-6 shadow-xl">
-        <h2 className="font-display text-2xl text-ink">Confirm it's you</h2>
-        <p className="mt-2 text-sm text-ink-soft">
+    <div className="fixed inset-0 z-[60] grid place-items-center bg-base/70 px-6 backdrop-blur-sm">
+      <div role="dialog" aria-modal="true" className="glass w-full max-w-sm rounded-2xl p-6">
+        <h2 className="font-display text-xl font-semibold text-text">Confirm it's you</h2>
+        <p className="mt-2 text-[13.5px] leading-relaxed text-muted">
           Your recent activity looked unusual. Re-enter your password to keep sending.
         </p>
         <form onSubmit={submit} className="mt-4 space-y-3">
@@ -49,23 +48,15 @@ export function ReAuthModal({
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full border border-ink-soft/50 bg-white px-3 py-2 font-mono text-sm outline-none focus:border-ink"
+            className="input"
             autoComplete="current-password"
           />
-          {error && <p className="text-[12px] text-high">{error}</p>}
+          {error && <p className="text-[12px] text-risk-high">{error}</p>}
           <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={busy}
-              className="bg-ink px-4 py-2 font-sans text-sm font-semibold text-paper disabled:opacity-50"
-            >
+            <button type="submit" disabled={busy} className="btn btn-primary">
               {busy ? "Checking…" : "Confirm"}
             </button>
-            <button
-              type="button"
-              onClick={onCancel}
-              className="px-3 py-2 font-mono text-[12px] text-ink-soft underline"
-            >
+            <button type="button" onClick={onCancel} className="btn">
               cancel
             </button>
           </div>

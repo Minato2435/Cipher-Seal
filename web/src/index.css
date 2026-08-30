@@ -3,7 +3,10 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
+  --risk: #5b6478;
+  --risk-soft: rgba(91, 100, 120, 0.25);
+  --risk-glow: rgba(91, 100, 120, 0.35);
 }
 
 html,
@@ -14,60 +17,134 @@ body,
 
 body {
   margin: 0;
-  background: #edf0f3;
-  color: #14181f;
-  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  background: #0a0d16;
+  color: #e8ebf5;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-}
-
-/* the lattice ground: two offset point-grids so it reads as a lattice, not a
-   plain square grid — a denser primary and a fainter shifted echo */
-.lattice-ground {
-  background-color: #edf0f3;
+  /* faint aurora wash + a fine grid, fixed */
   background-image:
-    radial-gradient(rgba(20, 24, 31, 0.15) 1px, transparent 1.6px),
-    radial-gradient(rgba(20, 24, 31, 0.08) 1px, transparent 1.6px);
+    radial-gradient(1100px 600px at 12% -10%, rgba(124, 92, 255, 0.14), transparent 60%),
+    radial-gradient(900px 520px at 110% 10%, rgba(61, 214, 208, 0.1), transparent 55%),
+    linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
   background-size:
-    30px 30px,
-    30px 30px;
-  background-position:
-    0 0,
-    13px 16px;
+    100% 100%,
+    100% 100%,
+    32px 32px,
+    32px 32px;
+  background-attachment: fixed;
 }
 
-/* a lit instrument surface set into the paper */
-.lit {
-  background: #0b1220;
-  color: #cdd6e4;
+::selection {
+  background: rgba(124, 92, 255, 0.35);
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #242c40;
+  border-radius: 999px;
+  border: 2px solid #0a0d16;
 }
 
 *:focus-visible {
-  outline: 2px solid #0b1220;
+  outline: 2px solid #7c5cff;
   outline-offset: 2px;
 }
 
-@keyframes seal-pop {
-  0% {
-    transform: scale(0.4);
-    opacity: 0;
-  }
-  70% {
-    transform: scale(1.15);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+h1,
+h2,
+h3,
+.font-display {
+  font-family: "Bricolage Grotesque", system-ui, sans-serif;
 }
 
-@keyframes wipe {
-  from {
-    clip-path: inset(0 100% 0 0);
-  }
-  to {
-    clip-path: inset(0 0 0 0);
-  }
+/* glass panel */
+.glass {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012));
+  border: 1px solid #242c40;
+  backdrop-filter: blur(6px);
+}
+
+/* the quantum gradient — verified, primary, the key exchange */
+.grad-quantum {
+  background-image: linear-gradient(120deg, #7c5cff, #5f8bff 40%, #3dd6d0);
+}
+.text-quantum {
+  background-image: linear-gradient(120deg, #a08bff, #3dd6d0);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 10px;
+  font: 500 13.5px "Inter", sans-serif;
+  cursor: pointer;
+  border: 1px solid #2b3450;
+  background: #161c2c;
+  color: #e8ebf5;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease;
+}
+.btn:hover {
+  border-color: #45507a;
+  box-shadow: 0 0 0 1px rgba(124, 92, 255, 0.22);
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn-primary {
+  border: none;
+  color: #0a0d16;
+  font-weight: 600;
+  background-image: linear-gradient(120deg, #7c5cff, #5f8bff 45%, #3dd6d0);
+  box-shadow: 0 6px 20px -8px rgba(124, 92, 255, 0.7);
+}
+.btn-primary:hover {
+  box-shadow: 0 8px 26px -8px rgba(124, 92, 255, 0.9);
+}
+
+.input {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid #2b3450;
+  background: #10151f;
+  color: #e8ebf5;
+  padding: 10px 12px;
+  font: 400 14px "Inter", sans-serif;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.input:focus {
+  outline: none;
+  border-color: #7c5cff;
+  box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.18);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font: 500 10.5px "JetBrains Mono", monospace;
+  border: 1px solid currentColor;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -75,6 +152,7 @@ body {
   *::before,
   *::after {
     animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
 }

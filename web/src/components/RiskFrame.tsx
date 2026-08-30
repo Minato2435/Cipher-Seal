@@ -1,58 +1,113 @@
-import type { ReactNode } from "react";
-import { bandColor } from "../lib/format";
+import { type ReactNode, useEffect } from "react";
 
-const WIDTH: Record<string, number> = { NORMAL: 2, ELEVATED: 3, HIGH: 5, CRITICAL: 7 };
-const LABEL: Record<string, string> = {
-  NORMAL: "normal",
-  ELEVATED: "elevated",
-  HIGH: "high",
-  CRITICAL: "critical",
+type Cfg = {
+  label: string;
+  color: string;
+  soft: string;
+  glow: string;
+  border: number;
+  gradient: string;
+  drift: boolean;
+  pulse: boolean;
+};
+
+const CFG: Record<string, Cfg> = {
+  NORMAL: {
+    label: "calm",
+    color: "#5B6478",
+    soft: "rgba(124,92,255,.18)",
+    glow: "rgba(124,92,255,.16)",
+    border: 2,
+    gradient: "linear-gradient(120deg,#7C5CFF,#3DD6D0,#7C5CFF)",
+    drift: true,
+    pulse: false,
+  },
+  ELEVATED: {
+    label: "elevated",
+    color: "#F2A93B",
+    soft: "rgba(242,169,59,.22)",
+    glow: "rgba(242,169,59,.28)",
+    border: 3,
+    gradient: "linear-gradient(120deg,#F2A93B,#F5C451,#F2A93B)",
+    drift: true,
+    pulse: false,
+  },
+  HIGH: {
+    label: "high",
+    color: "#F26430",
+    soft: "rgba(242,100,48,.26)",
+    glow: "rgba(242,100,48,.4)",
+    border: 4,
+    gradient: "linear-gradient(120deg,#F26430,#F03D5F,#F26430)",
+    drift: true,
+    pulse: true,
+  },
+  CRITICAL: {
+    label: "critical",
+    color: "#F03D5F",
+    soft: "rgba(240,61,95,.3)",
+    glow: "rgba(240,61,95,.55)",
+    border: 6,
+    gradient: "linear-gradient(120deg,#F03D5F,#FF6B8A,#F03D5F)",
+    drift: true,
+    pulse: true,
+  },
 };
 
 /**
- * Signature element: a hairline frame around the whole app whose colour and
- * weight track the signed-in user's AI risk band. Calm grey at NORMAL; a thick
- * red at CRITICAL. The band name sits on an engraved corner plate. Ambient.
+ * Signature element. A living gradient frame around the whole app: a violet↔cyan
+ * aurora drift when calm, locking to the risk hue and pulsing as the band rises,
+ * with a matching glow and a corner plate.
  */
 export function RiskFrame({ band, children }: { band: string; children: ReactNode }) {
-  const color = bandColor(band);
-  const width = WIDTH[band] ?? 2;
-  const loud = band === "HIGH" || band === "CRITICAL";
-  const ease = "1100ms cubic-bezier(0.4, 0, 0.2, 1)";
+  const c = CFG[band] ?? CFG.NORMAL;
+
+  useEffect(() => {
+    const s = document.documentElement.style;
+    s.setProperty("--risk", c.color);
+    s.setProperty("--risk-soft", c.soft);
+    s.setProperty("--risk-glow", c.glow);
+  }, [c.color, c.soft, c.glow]);
 
   return (
     <>
       {children}
 
-      {/* the frame */}
       <div
-        aria-hidden="true"
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-40 rounded-[14px]"
+        style={{
+          padding: c.border,
+          background: c.gradient,
+          backgroundSize: "300% 300%",
+          WebkitMask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+          WebkitMaskComposite: "xor",
+          maskComposite: "exclude",
+          animation: c.drift ? "aurora-drift 9s ease-in-out infinite" : undefined,
+          transition: "padding 1s ease",
+        }}
+      />
+      <div
+        aria-hidden
         className="pointer-events-none fixed inset-0 z-40"
         style={{
-          borderStyle: "solid",
-          borderColor: color,
-          borderWidth: width,
-          boxShadow: loud
-            ? `inset 0 0 ${band === "CRITICAL" ? 120 : 50}px ${color}1f`
-            : "none",
-          transition: `border-color ${ease}, border-width ${ease}, box-shadow ${ease}`,
+          boxShadow: `inset 0 0 ${c.pulse ? 120 : 70}px ${c.glow}`,
+          transition: "box-shadow 1s ease",
+          animation: c.pulse ? "aurora-drift 4s ease-in-out infinite" : undefined,
         }}
       />
 
-      {/* engraved corner plate — opaque so it never collides with page content */}
       <div
         role="status"
         aria-live="polite"
-        className="pointer-events-none fixed left-0 top-0 z-50 flex items-center gap-2 px-3 py-1"
-        style={{ background: color, transition: `background ${ease}` }}
+        className="glass pointer-events-none fixed left-4 top-4 z-50 flex items-center gap-2 rounded-full px-3 py-1"
       >
         <span
-          aria-hidden
-          className="inline-block h-1.5 w-1.5"
-          style={{ background: "#EDF0F3", opacity: 0.85 }}
+          className="h-2 w-2 rounded-full"
+          style={{ background: c.color, boxShadow: `0 0 10px ${c.color}` }}
         />
-        <span className="font-display text-[15px] lowercase leading-none text-paper" style={{ letterSpacing: "0.05em" }}>
-          {LABEL[band] ?? "normal"}
+        <span className="font-display text-[12px] font-semibold lowercase tracking-wide text-text">
+          {c.label}
         </span>
       </div>
     </>

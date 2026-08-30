@@ -8,13 +8,16 @@ import { useRiskBand } from "../lib/useRiskBand";
 import { effectiveBand, useMyStatus } from "../lib/useMyStatus";
 import { useSessions } from "../lib/useSessions";
 import { useMessages } from "../lib/useMessages";
+import { buildThread, groupByPeer } from "../lib/conversations";
+import { peerLabel, useUserDoc } from "../lib/useUserDoc";
 import { RiskFrame } from "../components/RiskFrame";
 import { RiskInstrument } from "../components/RiskInstrument";
-import { SessionList } from "../components/SessionList";
+import { ConversationList } from "../components/ConversationList";
 import { StartSession } from "../components/StartSession";
 import { MessageThread } from "../components/MessageThread";
 import { Composer } from "../components/Composer";
 import { EmptyThread } from "../components/EmptyThread";
+import { Avatar } from "../components/Avatar";
 
 const BANDS = ["NORMAL", "ELEVATED", "HIGH", "CRITICAL"];
 
@@ -26,16 +29,24 @@ export function Chat() {
   const allMessages = useMessages(user?.uid);
 
   const [override, setOverride] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedPeer, setSelectedPeer] = useState<string | null>(null);
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [copied, setCopied] = useState(false);
 
   const band = override ?? effectiveBand(status, risk.band);
   const displayName = user?.displayName || user?.email?.split("@")[0] || "you";
-  const selected = sessions.find((s) => s.id === selectedId) ?? null;
-  const threadMessages = useMemo(
-    () => allMessages.filter((m) => m.sessionId === selectedId),
-    [allMessages, selectedId],
+
+  const conversations = useMemo(
+    () => (user ? groupByPeer(sessions, user.uid).filter((c) => !hidden.has(c.peerUid)) : []),
+    [sessions, user, hidden],
   );
+  const selectedConv = conversations.find((c) => c.peerUid === selectedPeer) ?? null;
+  const threadItems = useMemo(
+    () => (selectedConv ? buildThread(selectedConv, allMessages) : []),
+    [selectedConv, allMessages],
+  );
+  const peerDoc = useUserDoc(selectedConv?.peerUid);
+  const peerName = selectedConv ? peerLabel(peerDoc, selectedConv.peerUid) : "";
 
   async function copyId() {
     if (!user) return;
@@ -46,51 +57,61 @@ export function Chat() {
 
   return (
     <RiskFrame band={band}>
-      <div className="lattice-ground flex h-screen">
-        <aside className="flex w-[304px] shrink-0 flex-col gap-5 overflow-x-hidden border-r border-ink/15 bg-paper/60 px-5 pb-5 pt-12 backdrop-blur-[1px]">
+      <div className="flex h-[calc(100vh-0px)] min-h-[560px]">
+        <aside className="flex w-[304px] shrink-0 flex-col gap-4 border-r border-line px-4 pb-4 pt-14">
           {/* identity */}
-          <div>
-            <p className="font-display text-[26px] leading-tight text-ink">{displayName}</p>
-            <p className="truncate font-mono text-[11px] text-ink-soft">{user?.email}</p>
-            <button
-              onClick={copyId}
-              className="group mt-2 flex w-full items-center gap-1.5 border border-ink/15 bg-white/70 px-2 py-1 font-mono text-[11px] text-ink-soft transition hover:border-ink/40"
-              title="Copy your user ID"
-            >
-              <span className="text-ink-soft/70">id</span>
-              <span className="flex-1 truncate text-left text-ink">
-                {copied ? "copied ✓" : middleTruncate(user?.uid ?? "", 22)}
-              </span>
-              <span aria-hidden className="text-ink-soft/60 group-hover:text-ink">⧉</span>
-            </button>
+          <div className="flex items-center gap-3">
+            <Avatar uid={user?.uid ?? ""} name={displayName} size={40} />
+            <div className="min-w-0">
+              <p className="truncate font-display text-[17px] font-semibold text-text">
+                {displayName}
+              </p>
+              <p className="truncate font-mono text-[10.5px] text-faint">{user?.email}</p>
+            </div>
           </div>
+          <button
+            onClick={copyId}
+            className="glass -mt-1 flex items-center gap-1.5 self-start rounded-full px-2.5 py-1 font-mono text-[10.5px] text-muted transition hover:text-text"
+            title="Copy your user ID"
+          >
+            <span className="text-faint">id</span>
+            <span className="text-text">
+              {copied ? "copied ✓" : middleTruncate(user?.uid ?? "", 18)}
+            </span>
+            <span aria-hidden>⧉</span>
+          </button>
 
-          {/* sessions */}
+          {/* conversations */}
           <div className="flex min-h-0 flex-1 flex-col">
-            <div className="flex items-center justify-between">
-              <h2 className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-soft">
-                sessions
+            <div className="flex items-center justify-between pb-1">
+              <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-faint">
+                conversations
               </h2>
-              <StartSession onStarted={setSelectedId} />
+              <StartSession
+                onStarted={(_sid, peerUid) => {
+                  setHidden((h) => {
+                    const n = new Set(h);
+                    n.delete(peerUid);
+                    return n;
+                  });
+                  setSelectedPeer(peerUid);
+                }}
+              />
             </div>
-            <div className="mt-2 min-h-0 flex-1 overflow-y-auto overflow-x-hidden border-t border-ink/10 pt-2">
-              {user && (
-                <SessionList
-                  sessions={sessions}
-                  meUid={user.uid}
-                  selectedId={selectedId}
-                  onSelect={setSelectedId}
-                />
-              )}
+            <div className="mt-1 min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+              <ConversationList
+                conversations={conversations}
+                selectedPeer={selectedPeer}
+                onSelect={setSelectedPeer}
+              />
             </div>
           </div>
 
-          {/* the lit instrument */}
           <RiskInstrument risk={risk} />
 
           {import.meta.env.DEV && (
             <div>
-              <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-ink-soft/70">
+              <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-faint">
                 dev · preview band
               </p>
               <div className="mt-1 flex flex-wrap gap-1">
@@ -100,8 +121,10 @@ export function Chat() {
                     <button
                       key={b}
                       onClick={() => setOverride(b === "LIVE" ? null : override === b ? null : b)}
-                      className={`border px-1.5 py-0.5 font-mono text-[10px] lowercase transition ${
-                        on ? "border-ink bg-ink text-paper" : "border-ink/25 hover:border-ink/50"
+                      className={`rounded-md border px-1.5 py-0.5 font-mono text-[10px] lowercase transition ${
+                        on
+                          ? "border-violet bg-violet/20 text-text"
+                          : "border-line text-muted hover:border-violet/50"
                       }`}
                     >
                       {b.toLowerCase()}
@@ -112,29 +135,45 @@ export function Chat() {
             </div>
           )}
 
-          {/* footer */}
-          <div className="flex items-center justify-between border-t border-ink/10 pt-3 font-mono text-[11px]">
+          <div className="flex items-center justify-between border-t border-line pt-3 font-mono text-[11px]">
             {claims.role === "admin" ? (
-              <Link to="/admin" className="text-ink underline decoration-dotted">
-                security monitor
+              <Link to="/admin" className="text-quantum font-semibold">
+                security monitor →
               </Link>
             ) : (
               <span />
             )}
-            <button onClick={() => signOut(auth)} className="text-ink-soft underline decoration-dotted">
+            <button onClick={() => signOut(auth)} className="text-faint hover:text-text">
               sign out
             </button>
           </div>
         </aside>
 
-        {/* main */}
         <main className="flex min-w-0 flex-1 flex-col">
-          {selected && user ? (
+          {selectedConv && user ? (
             <>
-              <div className="min-h-0 flex-1">
-                <MessageThread session={selected} messages={threadMessages} meUid={user.uid} />
+              <div className="flex items-center justify-end px-6 pt-3">
+                <button
+                  onClick={() => {
+                    setHidden((h) => new Set(h).add(selectedConv.peerUid));
+                    setSelectedPeer(null);
+                  }}
+                  className="font-mono text-[10.5px] text-faint hover:text-risk-high"
+                  title="Hide this conversation from your list (local only)"
+                >
+                  clear from view
+                </button>
               </div>
-              <Composer session={selected} blocked={status === "blocked"} />
+              <div className="min-h-0 flex-1">
+                <MessageThread conv={selectedConv} items={threadItems} meUid={user.uid} />
+              </div>
+              <Composer
+                activeSession={selectedConv.activeSession}
+                peerUid={selectedConv.peerUid}
+                peerName={peerName}
+                blocked={status === "blocked"}
+                onSessionStarted={() => setSelectedPeer(selectedConv.peerUid)}
+              />
             </>
           ) : (
             <EmptyThread />
