@@ -5,6 +5,7 @@ import { auth } from "../lib/firebase";
 import { middleTruncate } from "../lib/format";
 import { useAuthUser } from "../lib/useAuthUser";
 import { useRiskBand } from "../lib/useRiskBand";
+import { effectiveBand, useMyStatus } from "../lib/useMyStatus";
 import { useSessions } from "../lib/useSessions";
 import { useMessages } from "../lib/useMessages";
 import { RiskFrame } from "../components/RiskFrame";
@@ -20,6 +21,7 @@ const BANDS = ["NORMAL", "ELEVATED", "HIGH", "CRITICAL"];
 export function Chat() {
   const { user, claims } = useAuthUser();
   const risk = useRiskBand(user?.uid);
+  const status = useMyStatus(user?.uid);
   const sessions = useSessions(user?.uid);
   const allMessages = useMessages(user?.uid);
 
@@ -27,7 +29,7 @@ export function Chat() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const band = override ?? risk.band;
+  const band = override ?? effectiveBand(status, risk.band);
   const displayName = user?.displayName || user?.email?.split("@")[0] || "you";
   const selected = sessions.find((s) => s.id === selectedId) ?? null;
   const threadMessages = useMemo(
@@ -132,7 +134,7 @@ export function Chat() {
               <div className="min-h-0 flex-1">
                 <MessageThread session={selected} messages={threadMessages} meUid={user.uid} />
               </div>
-              <Composer session={selected} />
+              <Composer session={selected} blocked={status === "blocked"} />
             </>
           ) : (
             <EmptyThread />

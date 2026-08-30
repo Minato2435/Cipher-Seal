@@ -13,13 +13,14 @@ import {
 
 const EMPTY: StripData = { plaintext: "", sessionFp: "", ctB64: "", sigBytes: 0 };
 
-export function Composer({ session }: { session: Session }) {
+export function Composer({ session, blocked = false }: { session: Session; blocked?: boolean }) {
   const [text, setText] = useState("");
   const [phase, setPhase] = useState<StripPhase>("idle");
   const [data, setData] = useState<StripData>(EMPTY);
   const [notice, setNotice] = useState("");
-  const [locked, setLocked] = useState(false);
+  const [lockedByApi, setLockedByApi] = useState(false);
   const [reauth, setReauth] = useState(false);
+  const locked = blocked || lockedByApi;
   const pending = useRef<string | null>(null);
   const areaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -48,7 +49,7 @@ export function Composer({ session }: { session: Session }) {
         return;
       }
       if (err instanceof ApiError && err.code === "ACCOUNT_BLOCKED") {
-        setLocked(true);
+        setLockedByApi(true);
         setPhase("idle");
         return;
       }
