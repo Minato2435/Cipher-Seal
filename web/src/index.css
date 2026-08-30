@@ -737,13 +737,57 @@ h3,
 }
 .auth-panel {
   flex: 1;
+  position: relative;
+  overflow: hidden;
   display: grid;
   place-items: center;
   padding: 48px 34px;
 }
+.auth-panel::after {
+  content: "";
+  position: absolute;
+  right: -80px;
+  bottom: -80px;
+  width: 340px;
+  height: 340px;
+  background-image: radial-gradient(rgba(32, 31, 29, 0.16) 1px, transparent 1.6px);
+  background-size: 26px 26px;
+  -webkit-mask-image: radial-gradient(circle at 100% 100%, #000, transparent 70%);
+  mask-image: radial-gradient(circle at 100% 100%, #000, transparent 70%);
+  pointer-events: none;
+}
 .auth-panel-inner {
+  position: relative;
+  z-index: 1;
   width: 100%;
-  max-width: 384px;
+  max-width: 396px;
+}
+.auth-card {
+  border: 1px solid var(--divider-strong);
+  border-radius: 6px;
+  background: var(--paper);
+  box-shadow: var(--shadow-md);
+  padding: 28px 28px 24px;
+}
+.auth-assure {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--divider);
+  display: grid;
+  gap: 7px;
+}
+.auth-assure li {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--n-600);
+}
+.auth-assure svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--accent-600);
 }
 @media (max-width: 900px) {
   .auth-split {

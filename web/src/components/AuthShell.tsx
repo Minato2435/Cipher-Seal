@@ -33,6 +33,20 @@ const COPY = {
   register: { h: "Create your account", s: "Registering generates your post-quantum keypair." },
 };
 
+function Tick() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="m3 8.5 3.2 3L13 4.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+const ASSURANCES = [
+  "Your keypair is generated on this device — the private key is sealed at rest.",
+  "Every message is encrypted with ML-KEM + AES-256-GCM before it leaves your browser.",
+  "Signatures are checked before a single word is shown; a broken seal is refused.",
+];
+
 export function AuthShell({ mode, children }: { mode: "signin" | "register"; children: ReactNode }) {
   const c = COPY[mode];
   return (
@@ -61,23 +75,34 @@ export function AuthShell({ mode, children }: { mode: "signin" | "register"; chi
           {/* form panel */}
           <div className="auth-panel">
             <div className="auth-panel-inner">
-              <h1 className="font-head text-[26px]" style={{ fontWeight: 600 }}>
-                {c.h}
-              </h1>
-              <p className="mt-1 text-[13.5px] text-[color:var(--n-600)]">{c.s}</p>
+              <div className="auth-card">
+                <h1 className="font-head text-[25px]" style={{ fontWeight: 600 }}>
+                  {c.h}
+                </h1>
+                <p className="mt-1 text-[13px] text-[color:var(--n-600)]">{c.s}</p>
 
-              <div className="seg" style={{ margin: "22px 0 20px" }}>
-                <Link to="/login" aria-pressed={mode === "signin"} className="!no-underline">
-                  Sign in
-                </Link>
-                <Link to="/register" aria-pressed={mode === "register"} className="!no-underline">
-                  Register
-                </Link>
+                <div className="seg" style={{ margin: "20px 0 18px" }}>
+                  <Link to="/login" aria-pressed={mode === "signin"} className="!no-underline">
+                    Sign in
+                  </Link>
+                  <Link to="/register" aria-pressed={mode === "register"} className="!no-underline">
+                    Register
+                  </Link>
+                </div>
+
+                {children}
+
+                <ul className="auth-assure">
+                  {ASSURANCES.map((a) => (
+                    <li key={a}>
+                      <Tick />
+                      {a}
+                    </li>
+                  ))}
+                </ul>
               </div>
 
-              {children}
-
-              <p className="mt-5 text-center text-[12px] text-[color:var(--n-500)]">
+              <p className="mt-4 text-center text-[12px]">
                 <Link to="/" className="link-muted">
                   ← back to the front page
                 </Link>
