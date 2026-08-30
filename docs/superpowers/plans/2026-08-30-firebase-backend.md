@@ -1447,13 +1447,12 @@ Expected: FAIL — `ModuleNotFoundError: No module named 'quantumsafe.fb.scoring
 
 - [ ] **Step 3: Re-tune and implement**
 
-Edit `scripts/seed_baseline.py` — in the threshold tuner, replace the `critical` line so it never drops below `0.78`:
-
-```python
-critical = max(0.78, _budget_bound(normal_scores, 0.999) + 0.01, p99_9_normal + 0.01)
-```
-
-(Match the surrounding variable names actually present in the file; the intent is a hard `0.78` floor on `critical`.) Then:
+Edit `scripts/seed_baseline.py` — in the threshold tuner, make the final `critical`
+value written to `thresholds.json` **never drop below `0.78`**. Read the tuner's
+current structure first; the simplest change is to wrap whatever expression currently
+produces `critical` in `max(0.78, <existing expression>)`. Do not change how
+`elevated` / `high` are derived. The one hard requirement: `thresholds.json`'s
+`critical` ends up `>= 0.78`. Then:
 
 ```bash
 python scripts/seed_baseline.py --out functions --users 500 --seed 42 --now 1735689600
@@ -1489,7 +1488,7 @@ def load_model() -> RiskModel:
 
 def rescore_user(db, uid: str, now: float | None = None) -> tuple[RiskAssessment, str]:
     now = time.time() if now is None else now
-    window = load_events_window_for(db, uid, now)
+    window = events.load_events_window(db, uid, now, DEFAULT_WINDOW_SECONDS)
     feats = extract_features(window, now=now, window_seconds=DEFAULT_WINDOW_SECONDS)
     model_score = load_model().raw_score(features_to_vector(feats))
     assessment = assess(feats, model_score, load_thresholds())
@@ -1509,17 +1508,14 @@ def rescore_user(db, uid: str, now: float | None = None) -> tuple[RiskAssessment
         },
     )
     return assessment, previous
-
-
-def load_events_window_for(db, uid: str, now: float):
-    return events.load_events_window(db, uid, now, DEFAULT_WINDOW_SECONDS)
 ```
 
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `python -m pytest functions/tests/test_fb_scoring.py functions/tests/test_fb_thresholds_guard.py -v`
-Then the Part 1 suite still green: `python -m pytest functions/tests/test_synthetic.py functions/tests/test_risk.py -v`
-Expected: all PASS. If `test_synthetic.py::test_training_matrix_shape_and_model_separates_attacks` fails on a numeric bound, adjust only that number and note it in the report.
+Then confirm the Part 1 suite still passes with the regenerated model:
+`python -m pytest functions/tests/test_synthetic.py functions/tests/test_risk.py functions/tests/test_pipeline_integration.py -v`
+Expected: all PASS. If `test_synthetic.py::test_training_matrix_shape_and_model_separates_attacks` fails on a numeric bound, adjust only that number and note it in the report. `test_pipeline_integration.py` should be unaffected (its assertions are threshold-independent since the Part 1 fix wave), but if it regresses, stop and report — do not weaken it.
 
 - [ ] **Step 5: Commit**
 
@@ -1790,10 +1786,10 @@ import firebase_admin
 from firebase_functions import firestore_fn, https_fn
 from firebase_functions.params import SecretParam
 
-from quantumsafe.fb import enforcement, identity, messaging, scoring, sessions
+from quantumsafe.fb import enforcement, identity, messaging, repo, scoring, sessions
 from quantumsafe.fb import events as fb_events
 from quantumsafe.fb.client import get_db
-from quantumsafe.fb.config import DATABASE, REGION, app_secret
+from quantumsafe.fb.config import DATABASE, REGION
 from quantumsafe.fb.errors import FORBIDDEN, REAUTH_REQUIRED, AppError, to_https_error
 from quantumsafe.security.events import RE_AUTH_FAIL, RE_AUTH_OK, SIM_ATTACK
 from quantumsafe.ai.synthetic import generate_attack_events
@@ -1891,8 +1887,6 @@ def reauth(req: https_fn.CallableRequest):
     if not ok:
         fb_events.record_event(db, uid, RE_AUTH_FAIL)
         raise AppError(REAUTH_REQUIRED, "re-authentication failed")
-    db.collection.__self__  # noqa: B018  (keep import of db meaningful)
-    from quantumsafe.fb import repo
 
     repo.merge(db, "users", uid, {"reauthAt": repo.SERVER_TIMESTAMP})
     fb_events.record_event(db, uid, RE_AUTH_OK)
@@ -1949,8 +1943,6 @@ def on_security_event_created(event: firestore_fn.Event[firestore_fn.DocumentSna
     assessment, previous = scoring.rescore_user(db, uid)
     enforcement.apply_policy(db, uid, assessment, previous)
 ```
-
-> Implementer note: the `db.collection.__self__` line above is a mistake — delete it. Keep `reauth` importing `repo` at the top of the function or module level; the intent is only: on success, set `reauthAt`, record `RE_AUTH_OK`, rescore, apply policy.
 
 - [ ] **Step 4: Run test to verify it passes**
 
