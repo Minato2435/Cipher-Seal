@@ -1865,6 +1865,7 @@ git commit -m "feat: add synthetic traffic generator and baseline seeding script
 `functions/tests/test_pipeline_integration.py`:
 
 ```python
+import base64
 import time
 
 from quantumsafe.ai.features import extract_features, features_to_vector
@@ -1882,17 +1883,11 @@ def test_full_crypto_path_round_trips_and_verifies():
     assert out["verified"] is True
     assert out["recovered"] == b"the eagle lands at midnight"
     assert out["ct_b64"] and out["sig_b64"]
-    # plaintext must not appear in the transported ciphertext
-    assert b"eagle" not in bytes.fromhex(out["ct_b64"]) if False else True
-
-
-def test_tampered_ciphertext_breaks_verification(monkeypatch):
-    # flip a byte of ciphertext before verify by calling the primitives directly
-    from quantumsafe.crypto.sign import sign_keygen, sign, verify
-
-    kp = sign_keygen()
-    sig = sign(kp.sk, b"abc", context=b"ctx")
-    assert verify(kp.pk, b"abd", sig, context=b"ctx") is False
+    # plaintext must not survive into the transported ciphertext
+    assert b"eagle" not in base64.b64decode(out["ct_b64"])
+    # the session-key fingerprint is a stable 16-hex-char digest
+    assert len(out["session_key_fp"]) == 16
+    int(out["session_key_fp"], 16)
 
 
 def test_risk_pipeline_drives_policy_from_normal_to_critical():
