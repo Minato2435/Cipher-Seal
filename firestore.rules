@@ -10,9 +10,11 @@ service cloud.firestore {
     function isAdmin()  { return signedIn() && request.auth.token.role == 'admin'; }
     function me()       { return request.auth.uid; }
 
-    // Own profile; admins see everyone. role/status are set by functions only.
+    // Any signed-in user may fetch a single profile (display names aren't secret,
+    // and the chat needs a peer's name). Enumeration stays admin-only.
+    // role/status are set by functions only.
     match /users/{uid} {
-      allow get: if me() == uid || isAdmin();
+      allow get: if signedIn();
       allow list: if isAdmin();
       allow write: if false;
     }
