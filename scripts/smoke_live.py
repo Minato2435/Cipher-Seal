@@ -27,11 +27,27 @@ def main() -> int:
 
     deadline = time.time() + 120
     ok = False
+    stored = None
     while time.time() < deadline:
-        if repo.get(db, "riskScores", uid) is not None:
+        stored = repo.get(db, "riskScores", uid)
+        if stored is not None:
             ok = True
             break
         time.sleep(5)
+
+    if ok:
+        # Eyeball this: a broken/unpicklable model still writes a valid doc, but
+        # with modelScore == 0.0 and a rule-only score. Print it, then assert.
+        print(f"riskScores/{uid} = {stored}")
+        model_score = stored.get("modelScore")
+        score = stored.get("score")
+        assert isinstance(model_score, float) and 0.0 <= model_score <= 1.0, (
+            f"modelScore must be a float in [0,1], got {model_score!r}"
+        )
+        assert isinstance(score, float) and score >= 0.0, f"score must be >= 0, got {score!r}"
+        if model_score == 0.0:
+            print("WARNING: modelScore == 0.0 -- the ML model may have failed to load "
+                  "(check the function logs for 'risk model unavailable')")
 
     # cleanup — the trigger's apply_policy also creates users/<uid> via repo.merge
     from quantumsafe.fb.config import collection
