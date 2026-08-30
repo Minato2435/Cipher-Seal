@@ -667,7 +667,7 @@ h3,
   line-height: 1.6;
 }
 
-/* ---- auth ---- */
+/* ---- auth: split stage + form ---- */
 .auth-wrap {
   min-height: 100vh;
   width: 100%;
@@ -678,6 +678,95 @@ h3,
   display: flex;
   flex-direction: column;
   justify-content: center;
+}
+.auth-split {
+  display: flex;
+  min-height: 100vh;
+}
+.auth-stage {
+  flex: 0 0 45%;
+  position: relative;
+  overflow: hidden;
+  background: var(--instrument);
+  color: #e7ddc9;
+  border-right: 1px solid var(--instrument-line);
+  padding: 52px 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 40px;
+}
+.auth-stage > * {
+  position: relative;
+  z-index: 1;
+}
+.auth-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(231, 221, 201, 0.09) 1px, transparent 1.6px);
+  background-size: 30px 30px;
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 28%, #000 72%, transparent);
+  mask-image: linear-gradient(180deg, transparent, #000 28%, #000 72%, transparent);
+  pointer-events: none;
+}
+.auth-stage-wordmark {
+  font-family: "Cormorant Garamond", serif;
+  font-weight: 600;
+  font-size: 25px;
+  letter-spacing: 0.4px;
+}
+.auth-stage-quote {
+  font-family: "Cormorant Garamond", serif;
+  font-weight: 600;
+  font-size: clamp(1.9rem, 3vw, 2.7rem);
+  line-height: 1.14;
+}
+.auth-stage-sub {
+  margin-top: 14px;
+  color: #a89c80;
+  font-size: 14px;
+  line-height: 1.65;
+  max-width: 42ch;
+}
+.auth-stage-foot {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: #8f8570;
+}
+.auth-panel {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 48px 34px;
+}
+.auth-panel-inner {
+  width: 100%;
+  max-width: 384px;
+}
+@media (max-width: 900px) {
+  .auth-split {
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  .auth-stage {
+    flex: none;
+    padding: 30px 26px;
+    gap: 22px;
+    border-right: none;
+    border-bottom: 1px solid var(--instrument-line);
+  }
+  .auth-stage-quote {
+    font-size: 1.55rem;
+  }
+  .auth-stage::before {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  .auth-panel {
+    padding: 34px 24px;
+  }
 }
 .wordmark {
   font-family: "Cormorant Garamond", serif;
