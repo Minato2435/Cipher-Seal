@@ -44,6 +44,9 @@ class RiskModel:
 
     @classmethod
     def load(cls, path: str) -> "RiskModel":
+        # The artefact is a pickle, so loading it executes code. It is a
+        # repo-controlled, trusted file produced by scripts/seed_baseline.py --
+        # do not make this path externally configurable.
         d = joblib.load(path)
         return cls(scaler=d["scaler"], forest=d["forest"], p_low=d["p_low"], p_high=d["p_high"])
 

@@ -7,7 +7,6 @@ Cloud Functions layer will later perform these same steps across Firestore.
 from __future__ import annotations
 
 import base64
-import hashlib
 
 from quantumsafe.crypto.aead import aes256gcm_decrypt, aes256gcm_encrypt
 from quantumsafe.crypto.kdf import hkdf_sha256
@@ -15,6 +14,7 @@ from quantumsafe.crypto.kem import kem_decapsulate, kem_encapsulate, kem_keygen
 from quantumsafe.crypto.sign import sign, sign_keygen, verify
 
 SESSION_INFO = b"quantumsafe-session-v1"
+FINGERPRINT_INFO = b"quantumsafe-fp-v1"
 
 
 def _b64(raw: bytes) -> str:
@@ -22,10 +22,25 @@ def _b64(raw: bytes) -> str:
 
 
 def _fingerprint(key: bytes) -> str:
-    return hashlib.sha256(key).hexdigest()[:16]
+    """A short, non-invertible label for a session key (16 hex chars).
+
+    Derived through HKDF rather than a truncated raw hash of the live key, so
+    the published fingerprint is domain-separated from the key material itself.
+    """
+    return hkdf_sha256(key, info=FINGERPRINT_INFO, length=8).hex()
 
 
 def secure_exchange(app_secret: bytes, plaintext: bytes) -> dict:
+    """Run one full encrypt-sign-verify-decrypt exchange in a single process.
+
+    ``app_secret`` is unused here and reserved for the Functions-layer keystore
+    lookup (unwrapping the caller's stored private keys); this demo path mints
+    ephemeral identities instead.
+
+    WARNING: the returned dict contains ``recovered`` -- the *plaintext* -- for
+    in-process demo and inspection only. Never persist, log, or transmit this
+    dict.
+    """
     # identities
     recipient_kem = kem_keygen()
     sender_sign = sign_keygen()

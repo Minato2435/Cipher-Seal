@@ -41,12 +41,12 @@ def decide(previous_band: str, new_band: str) -> PolicyAction:
     if _ORDER[new_band] < _ORDER[previous_band] and new_band == "NORMAL":
         return PolicyAction(previous_band, new_band, "RESTORE", status, False, False, False)
 
+    # The two guards above consume every transition into NORMAL, so the action
+    # depends only on the new band -- including downgrades: CRITICAL -> HIGH
+    # still terminates sessions and CRITICAL -> ELEVATED still forces re-auth,
+    # because the account is not yet trusted again.
     if new_band == "ELEVATED":
         return PolicyAction(previous_band, new_band, "REQUIRE_REAUTH", status, False, False, True)
     if new_band == "HIGH":
         return PolicyAction(previous_band, new_band, "TERMINATE_SESSIONS", status, True, False, False)
-    if new_band == "CRITICAL":
-        return PolicyAction(previous_band, new_band, "BLOCK", status, True, True, False)
-
-    # any remaining downgrade (e.g. CRITICAL -> HIGH/ELEVATED)
-    return PolicyAction(previous_band, new_band, "RESTORE", status, False, False, False)
+    return PolicyAction(previous_band, new_band, "BLOCK", status, True, True, False)  # CRITICAL

@@ -49,6 +49,7 @@ def rule_boost(feats: Mapping[str, float]) -> tuple[float, dict]:
         components["brute_force"] = 0.40
     if feats.get("msg_rate_per_min", 0.0) > _MSG_RATE_LIMIT:
         components["msg_flood"] = 0.30
+    # hour_of_day is UTC (from features.extract_features); "off-hours" here means 00:00-06:00 UTC
     if feats.get("hour_of_day", 12.0) < 6 and feats.get("msg_sent_count", 0.0) > 10:
         components["off_hours_burst"] = 0.20
     if feats.get("sim_attack_flag", 0.0) >= 1.0:

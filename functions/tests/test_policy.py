@@ -41,6 +41,20 @@ def test_escalate_to_critical_blocks_and_alerts():
     assert a.raise_alert is True
 
 
+def test_downgrade_from_critical_to_high_still_terminates_sessions():
+    a = decide("CRITICAL", "HIGH")
+    assert a.action == "TERMINATE_SESSIONS"
+    assert a.terminate_sessions is True
+    assert a.status == "high"
+
+
+def test_downgrade_from_critical_to_elevated_still_requires_reauth():
+    a = decide("CRITICAL", "ELEVATED")
+    assert a.action == "REQUIRE_REAUTH"
+    assert a.require_reauth is True
+    assert a.status == "elevated"
+
+
 def test_downgrade_to_normal_is_restore():
     a = decide("ELEVATED", "NORMAL")
     assert a.action == "RESTORE"

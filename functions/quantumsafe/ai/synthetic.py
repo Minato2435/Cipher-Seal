@@ -14,6 +14,12 @@ from quantumsafe.security.events import (
     SecurityEvent,
 )
 
+# How far back the synthetic baseline spreads its windows, so the model sees
+# normal traffic at every hour of the day rather than one instant.
+_TRAINING_SPAN_HOURS = 14 * 24
+# Fraction of baseline users whose window contains no events at all.
+_IDLE_FRACTION = 0.35
+
 
 def _spread(rng, now: float, window: float, n: int) -> list[float]:
     if n <= 0:
@@ -74,8 +80,8 @@ def build_training_matrix(rng, n_users: int, now: float, window_seconds: float) 
     """
     rows: list[list[float]] = []
     for i in range(n_users):
-        user_now = now - float(rng.integers(0, 14 * 24)) * 3600.0
-        if rng.random() < 0.35:
+        user_now = now - float(rng.integers(0, _TRAINING_SPAN_HOURS)) * 3600.0
+        if rng.random() < _IDLE_FRACTION:
             ev: list[SecurityEvent] = []
         else:
             ev = generate_normal_events(rng, f"u{i}", user_now, window_seconds)
