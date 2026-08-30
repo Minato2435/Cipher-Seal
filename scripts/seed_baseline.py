@@ -182,6 +182,10 @@ def tune_thresholds(
             f"{CRITICAL_TARGET:.2f} target; widened `critical` down to {critical:.3f}"
         )
 
+    # Account-blocking must stay conservative: never let CRITICAL drop below 0.78,
+    # whatever the tuner's data-driven expression produced above.
+    critical = max(0.78, critical)
+
     thresholds = Thresholds(
         elevated=round(elevated, 3), high=round(high, 3), critical=round(critical, 3)
     )
