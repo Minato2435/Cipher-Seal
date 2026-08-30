@@ -38,7 +38,7 @@ export function Admin() {
 
   return (
     <RiskFrame band={myRisk.band}>
-      <div className="max-h-[calc(100vh-60px)] overflow-y-auto px-6 pb-14 pt-8 md:px-10">
+      <div className="h-screen overflow-y-auto px-6 pb-14 pt-8 md:px-10">
         <div className="mx-auto max-w-6xl">
           <div className="flex items-start justify-between gap-4">
             <div>

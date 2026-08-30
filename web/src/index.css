@@ -186,22 +186,19 @@ h3,
   color: var(--n-600);
 }
 
-/* ---- the framed card + wax halo ---- */
+/* ---- full-bleed frame: the risk border hugs the screen edge, no card ---- */
 .frame-outer {
-  max-width: 1180px;
-  margin: 28px auto;
-  padding: 2px;
-}
-@media (max-width: 1220px) {
-  .frame-outer {
-    margin: 14px 12px;
-  }
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
 }
 .risk-frame {
   position: relative;
-  border-radius: 6px;
+  min-height: 100vh;
+  border-radius: 0;
   border: var(--risk-width) solid var(--risk-color);
-  box-shadow: 0 0 0 5px var(--risk-soft), var(--shadow-lg);
+  box-shadow: inset 0 0 60px var(--risk-soft);
   transition:
     border-color 1.1s ease,
     border-width 1.1s ease,
@@ -210,10 +207,11 @@ h3,
   overflow: hidden;
 }
 .risk-plate {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  z-index: 5;
+  position: fixed;
+  top: 0;
+  right: 0;
+  border-radius: 0 0 0 2px;
+  z-index: 40;
   background: var(--instrument);
   color: var(--risk-color);
   border: 1px solid var(--instrument-line);
@@ -230,8 +228,8 @@ h3,
 /* ---- console ---- */
 .console {
   display: flex;
-  min-height: 660px;
-  height: calc(100vh - 60px);
+  height: 100vh;
+  min-height: 560px;
 }
 .rail {
   width: 300px;
@@ -414,7 +412,7 @@ h3,
   min-width: 0;
 }
 .main-header {
-  padding: 18px 28px;
+  padding: 18px 96px 18px 28px;
   border-bottom: 1px solid var(--divider);
   display: flex;
   align-items: baseline;
@@ -654,10 +652,15 @@ h3,
 
 /* ---- auth ---- */
 .auth-wrap {
-  max-width: 400px;
+  min-height: 100vh;
+  width: 100%;
+  max-width: 420px;
   margin: 0 auto;
   text-align: center;
-  padding: 76px 28px;
+  padding: 40px 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 .wordmark {
   font-family: "Cormorant Garamond", serif;
