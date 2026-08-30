@@ -72,6 +72,21 @@ def _floor3(x: float) -> float:
     return math.floor(x * 1000.0) / 1000.0
 
 
+def _budget_bound(normal: np.ndarray, budget_pct: float) -> float:
+    """Lowest 3-dp threshold at which at most ``budget_pct`` of ``normal`` lands HIGH.
+
+    Blended scores clump: every window whose model score saturates at 1.0 with
+    no rule boost lands on exactly ``0.6``, so percentile placement can put the
+    threshold *on* an atom and sweep the whole clump into HIGH. Taking the value
+    just above the (k+1)-th largest normal score sidesteps that.
+    """
+    allowed = int(budget_pct / 100.0 * len(normal))
+    descending = np.sort(normal)[::-1]
+    if allowed >= len(descending):
+        return 0.0
+    return _floor3(float(descending[allowed])) + 0.001
+
+
 def _score(model: RiskModel, events, now: float) -> float:
     """Blended risk score for one window. Independent of the thresholds."""
     feats = extract_features(events, now=now, window_seconds=WINDOW_SECONDS)
@@ -118,11 +133,11 @@ def tune_thresholds(
 
     - ``elevated`` sits at the 90th percentile of normal traffic, so roughly one
       normal window in ten is worth a second look.
-    - ``high`` sits at the 99th percentile of normal traffic. It is pulled down
-      to the weakest observed attack window -- so no attack kind is missed --
-      but only while that stays inside ``FALSE_HIGH_BUDGET_PCT``: HIGH costs the
-      user their sessions, so a recall gain is not worth an unbounded rise in
-      false alarms. Never below ``HIGH_FLOOR``.
+    - ``high`` sits at the 99th percentile of normal traffic, pulled down to the
+      weakest observed attack window so no attack kind is missed -- but never
+      below the point where at most ``FALSE_HIGH_BUDGET_PCT`` of normal traffic
+      lands HIGH. HIGH costs the user their sessions, so that budget is a hard
+      constraint and recall is bought only within it. Never below ``HIGH_FLOOR``.
     - ``critical`` stays at ``CRITICAL_TARGET`` unless that would leave the
       headline attack kinds mostly sub-critical, in which case the CRITICAL band
       is widened downwards (with a warning) so a clear majority of them block.
@@ -134,17 +149,21 @@ def tune_thresholds(
 
     normal_p99 = _floor3(float(np.percentile(normal, 99)))
     weakest_attack = _floor3(min(float(scores.min()) for scores in attacks.values()))
-    high = max(HIGH_FLOOR, min(normal_p99, weakest_attack))
-    false_high_pct = 100.0 * float((normal >= high).mean())
-    if false_high_pct > FALSE_HIGH_BUDGET_PCT:
-        # The normal tail overlaps the weakest attacks; recall here is too
-        # expensive, so fall back to the plain 99th-percentile placement.
-        high = max(HIGH_FLOOR, normal_p99)
+    recall_first = max(HIGH_FLOOR, min(normal_p99, weakest_attack))
+    budget_bound = _budget_bound(normal, FALSE_HIGH_BUDGET_PCT)
+    high = max(recall_first, budget_bound)
+    if budget_bound > recall_first:
+        missed = {
+            kind: 100.0 * float((scores < high).mean())
+            for kind, scores in attacks.items()
+            if (scores < high).any()
+        }
         warnings.append(
-            f"normal tail overlaps the weakest attack window ({weakest_attack:.3f}): "
-            f"covering it would put {false_high_pct:.1f}% of normal traffic in HIGH, "
-            f"over the {FALSE_HIGH_BUDGET_PCT:.0f}% budget; kept `high` at the normal "
-            f"p99 ({high:.3f}), so the weakest windows of some attack kinds land ELEVATED"
+            f"normal tail overlaps the weakest attack windows ({weakest_attack:.3f}): "
+            f"placing `high` there would spend more than the "
+            f"{FALSE_HIGH_BUDGET_PCT:.0f}% false-HIGH budget, so it was raised to "
+            f"{high:.3f}; below-`high` share per kind: "
+            + ", ".join(f"{k} {v:.1f}%" for k, v in sorted(missed.items()))
         )
 
     critical = CRITICAL_TARGET
