@@ -214,8 +214,6 @@ export function Home() {
   return (
     <div className="frame-outer">
       <div className="risk-frame" style={{ overflow: "auto", minHeight: "100vh" }}>
-        <div className="risk-plate">Calm</div>
-
         <header className={`landing-header${showHeader ? " show" : ""}`}>
           <span className="font-head text-lg" style={{ fontWeight: 600 }}>
             Cipher &amp; Seal
