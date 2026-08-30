@@ -49,11 +49,11 @@ export function UserTable({
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string>("");
 
-  async function unblock(uid: string) {
+  async function setStatus(uid: string, status: "normal" | "blocked") {
     setBusy(uid);
     setErr("");
     try {
-      await api.adminSetStatus(uid, "normal");
+      await api.adminSetStatus(uid, status);
     } catch (e) {
       setErr(e instanceof ApiError ? e.message : "Couldn't update that account.");
     } finally {
@@ -122,16 +122,27 @@ export function UserTable({
                 </td>
                 <td className="px-4 py-2 text-right">
                   <div className="inline-flex gap-2">
-                    {r.status === "blocked" && (
+                    {r.status === "blocked" ? (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          void unblock(r.uid);
+                          void setStatus(r.uid, "normal");
                         }}
                         disabled={busy === r.uid}
                         className="border border-critical/50 px-2 py-0.5 font-mono text-[11px] text-critical disabled:opacity-50"
                       >
                         {busy === r.uid ? "…" : "unblock"}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void setStatus(r.uid, "blocked");
+                        }}
+                        disabled={busy === r.uid}
+                        className="border border-ink/25 px-2 py-0.5 font-mono text-[11px] text-ink-soft hover:border-critical/50 hover:text-critical disabled:opacity-50"
+                      >
+                        {busy === r.uid ? "…" : "block"}
                       </button>
                     )}
                     <button

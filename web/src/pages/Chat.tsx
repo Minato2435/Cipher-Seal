@@ -45,7 +45,7 @@ export function Chat() {
   return (
     <RiskFrame band={band}>
       <div className="lattice-ground flex h-screen">
-        <aside className="flex w-[304px] shrink-0 flex-col gap-5 border-r border-ink/15 bg-paper/60 px-5 pb-5 pt-12 backdrop-blur-[1px]">
+        <aside className="flex w-[304px] shrink-0 flex-col gap-5 overflow-x-hidden border-r border-ink/15 bg-paper/60 px-5 pb-5 pt-12 backdrop-blur-[1px]">
           {/* identity */}
           <div>
             <p className="font-display text-[26px] leading-tight text-ink">{displayName}</p>
@@ -71,7 +71,7 @@ export function Chat() {
               </h2>
               <StartSession onStarted={setSelectedId} />
             </div>
-            <div className="mt-2 min-h-0 flex-1 overflow-y-auto border-t border-ink/10 pt-2">
+            <div className="mt-2 min-h-0 flex-1 overflow-y-auto overflow-x-hidden border-t border-ink/10 pt-2">
               {user && (
                 <SessionList
                   sessions={sessions}
