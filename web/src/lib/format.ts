@@ -33,7 +33,12 @@ export function middleTruncate(s: string, max = 24): string {
 
 /** First 16 hex chars of SHA-256(bytes(b64)) — a short session-key fingerprint. */
 export async function fingerprint(b64: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", b64ToBytes(b64));
+  const bytes = b64ToBytes(b64);
+  const buf = bytes.buffer.slice(
+    bytes.byteOffset,
+    bytes.byteOffset + bytes.byteLength,
+  ) as ArrayBuffer;
+  const digest = await crypto.subtle.digest("SHA-256", buf);
   return Array.from(new Uint8Array(digest))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("")

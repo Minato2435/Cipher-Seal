@@ -16,12 +16,11 @@ export type ApiErrorCode =
   | "UNKNOWN";
 
 export class ApiError extends Error {
-  constructor(
-    public code: ApiErrorCode,
-    message: string,
-  ) {
+  code: ApiErrorCode;
+  constructor(code: ApiErrorCode, message: string) {
     super(message);
     this.name = "ApiError";
+    this.code = code;
   }
 }
 
