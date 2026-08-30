@@ -75,20 +75,33 @@ quota.
 
 ### 3.2 Firestore data model
 
-| Collection / doc | Fields |
+> **As-built (Part 2, database `default2`).** The field names below are the
+> contract Parts 3–4 code against — they reflect what the backend actually
+> writes, which differs from the original sketch in the b64-suffixed key names
+> (inherited from the Part 1 `keystore`/`aead` wrappers). Every collection name
+> is also prefixed with `QS_COLLECTION_PREFIX` in tests (empty in production).
+
+| Collection / doc | Fields (as built) |
 |---|---|
-| `users/{uid}` | `displayName`, `email`, `role`, `status`, `createdAt`, `lastSeenAt` |
-| `publicKeys/{uid}` | `mlkemPub` (b64), `mldsaPub` (b64), `updatedAt` |
-| `privateKeys/{uid}` | `mlkemPriv_enc`, `mldsaPriv_enc`, `nonce`, `alg` — encrypted at rest with an app-secret-derived KEK; **functions-only access** |
-| `sessions/{sessionId}` | `participants` `[uidA, uidB]`, `sessionKey_enc`, `nonce`, `createdAt`, `state` (`active`\|`terminated`), `kemTranscriptHash` |
-| `messages/{messageId}` | `sessionId`, `senderUid`, `recipientUid`, `ciphertext` (b64), `iv` (b64), `tag` (b64), `signature` (b64), `sigAlg`, `createdAt`, `verified` (`bool`\|`null`) |
-| `securityEvents/{eventId}` | `uid`, `type`, `meta` `{}`, `ts` |
+| `users/{uid}` | `displayName`, `email`, `role` (`user`\|`admin`), `status` (`normal`\|`elevated`\|`high`\|`blocked`), `createdAt`, `reauthAt` (set by `reauth`) — *`lastSeenAt` not yet written* |
+| `publicKeys/{uid}` | `mlkemPub_b64`, `mldsaPub_b64`, `mlkemAlg` (`"ML-KEM-768"`), `mldsaAlg` (`"ML-DSA-65"`) |
+| `privateKeys/{uid}` | `mlkemPriv_enc`, `mldsaPriv_enc` — each a wrapped-key dict `{alg, salt_b64, iv_b64, ct_b64, tag_b64}`, AES-256-GCM sealed under an `APP_SECRET`-derived KEK with AAD `alg\|uid`; **functions-only access** |
+| `sessions/{sessionId}` | `participants` `[uidA, uidB]`, `sessionKey_enc` (wrapped-key dict, keystore uid = `sessionId`), `kemCtB64`, `state` (`active`\|`terminated`), `createdAt` |
+| `messages/{messageId}` | `sessionId`, `senderUid`, `recipientUid`, `ct_b64`, `iv_b64`, `tag_b64`, `sig_b64`, `sigAlg` (`"ML-DSA-65"`), `createdAt`, `verified` (`bool`\|`null`) — **ciphertext only, no plaintext field** |
+| `securityEvents/{eventId}` | `uid`, `type`, `meta` `{}`, `ts` (server timestamp) |
 | `riskScores/{uid}` | `score` (0..1), `band`, `modelScore`, `ruleBoost`, `components` `{}`, `updatedAt` |
 | `policyActions/{actionId}` | `uid`, `fromBand`, `toBand`, `action`, `ts`, `actor` (`system`\|`admin`) |
-| `alerts/{alertId}` | `uid`, `reason`, `ts`, `acknowledged` |
+| `alerts/{alertId}` | `uid`, `reason`, `ts`, `acknowledged` (bool) |
 
 `securityEvents.type` enum: `LOGIN_OK`, `LOGIN_FAIL`, `MSG_SENT`, `MSG_RECV`,
 `TAMPER`, `SESSION_ESTABLISH`, `RE_AUTH_OK`, `RE_AUTH_FAIL`, `SIM_ATTACK`.
+*As built, `MSG_RECV` is defined but no longer written* (reading a message must
+not trigger a rescore); `reauth` failure records **both** `RE_AUTH_FAIL` and
+`LOGIN_FAIL` so real failed logins feed the risk model.
+
+**Composite indexes** (`firestore.indexes.json`, must be deployed):
+`securityEvents(uid, ts)`, `messages(sessionId, createdAt)`,
+`sessions(participants CONTAINS, state)`.
 
 ### 3.3 Cloud Functions (Python)
 
@@ -99,7 +112,7 @@ quota.
 | `register_keys()` | Called on first login. Generate ML-KEM-768 + ML-DSA-65 keypairs; store public keys; encrypt private keys with the KEK; write the `users` doc. |
 | `establish_session(peerUid)` | Load peer ML-KEM public key; `ML_KEM.encaps()` → `(kem_ct, shared_secret)`; HKDF → AES-256 session key; store `sessionKey_enc`; write `sessions` doc + `SESSION_ESTABLISH` event; return `sessionId`. |
 | `send_message(sessionId, plaintext)` | Assert caller is a participant, `status != blocked`, session `active`, and policy allows (see 3.5). Decrypt session key; AES-256-GCM encrypt; ML-DSA sign over `sessionId ‖ senderUid ‖ recipientUid ‖ iv ‖ ciphertext ‖ tag` (the binding context); write `messages` doc; write `MSG_SENT` event. |
-| `read_message(messageId)` | Caller must be a participant. ML-DSA verify → on failure set `verified=false`, write `TAMPER` event, raise; on success AES-GCM decrypt → return plaintext; write `MSG_RECV` event. |
+| `read_message(messageId)` | Caller must be a participant. ML-DSA verify → on failure set `verified=false`, write `TAMPER` event, raise; on success set `verified=true`, AES-GCM decrypt → return plaintext. *As built: no `MSG_RECV` event (would trigger a needless rescore); works on `terminated` sessions.* |
 | `reauth(password)` | Verify via Firebase Auth REST. On success write `RE_AUTH_OK` and drop band `ELEVATED → NORMAL`; else `RE_AUTH_FAIL`. |
 | `simulate_attack(kind, targetUid?)` | Generate a burst of synthetic `securityEvents` for the demo (`kind` ∈ `brute_force`, `msg_flood`, `off_hours_burst`). |
 | `admin_set_status(uid, status)` | Admin only. Unblock / block a user; write a `policyActions` doc. |
@@ -141,19 +154,27 @@ ruleBoost  = capped weighted sum of hard signals:
 score      = clamp(0.6 * modelScore + 0.4 * ruleBoost, 0, 1)
 ```
 
-**Bands** (thresholds live in `thresholds.json`, tuned during seeding):
-`NORMAL < 0.35`, `ELEVATED 0.35–0.60`, `HIGH 0.60–0.80`, `CRITICAL >= 0.80`.
+**Bands** (thresholds live in `thresholds.json`, tuned during seeding). Original
+sketch: `NORMAL < 0.35`, `ELEVATED 0.35–0.60`, `HIGH 0.60–0.80`, `CRITICAL >= 0.80`.
+**As-built (seed-tuned):** `elevated 0.444`, `high 0.601`, `critical 0.78` — the
+CRITICAL/auto-block bar was raised so ~0% of synthetic normal traffic auto-blocks
+while every simulated attack still reaches at least HIGH. A guard test
+(`test_fb_thresholds_guard.py`) pins `critical >= 0.75` and re-checks calibration.
+`msg_rate_per_min` boost uses a fixed threshold of 30.
 
-### 3.5 Policy engine (`security/policy.py`)
+### 3.5 Policy engine (`security/policy.py` + `fb/enforcement.py`)
 
 Band → action. **Idempotent** — acts only when the band changes.
 
-| Band | Action |
+| Band | Action (as built) |
 |---|---|
 | `NORMAL` | Ensure `status=normal`; sessions remain active. |
-| `ELEVATED` | `status=elevated`; the next `send_message` requires a fresh `reauth` (checked inside `send_message`). |
-| `HIGH` | `status=high`; set all the user's sessions `state=terminated`; force re-login (client observes the status claim and logs out). |
-| `CRITICAL` | `status=blocked`; terminate sessions; create an `alert`; only `admin_set_status` can restore. |
+| `ELEVATED` | `status=elevated`; `send_message` **and** `establish_session` require a fresh `reauth` (≤ 600 s). |
+| `HIGH` | `status=high`; sessions `state=terminated` + `revoke_refresh_tokens`; `send_message`/`establish_session` gated exactly like `ELEVATED` (server-side — the client-logout is advisory only, since a callable ID token isn't checked for revocation). |
+| `CRITICAL` | `status=blocked`; terminate sessions; create an `alert`. **Sticky:** `apply_policy` refuses to auto-downgrade a `blocked` user — only `admin_set_status` restores. An admin (`grant_admin.py`) must exist before anyone can be unblocked. |
+
+Terminated sessions stay **readable** (`read_message` passes `require_active=False`)
+so history survives an escalation; only sending is blocked.
 
 **Downgrades:** `reauth` success moves `ELEVATED → NORMAL`; admin action moves
 `blocked → normal`. `HIGH` clears on the forced re-login (which resets the
