@@ -9,3 +9,10 @@ dist/
 web/.env
 functions/.env
 .DS_Store
+
+# Firebase credentials — NEVER commit
+serviceAccountKey.json
+**/serviceAccountKey.json
+*serviceAccount*.json
+.secret.local
+functions/.secret.local
