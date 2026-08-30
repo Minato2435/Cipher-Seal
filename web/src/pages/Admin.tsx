@@ -40,19 +40,23 @@ export function Admin() {
     <RiskFrame band={myRisk.band}>
       <main className="lattice-ground min-h-screen px-6 pb-16 pt-12 md:px-10">
         <div className="mx-auto max-w-6xl">
-          <div className="flex items-end justify-between">
+          <div className="flex items-start justify-between gap-4">
             <div>
               <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-soft">
                 quantum-safe communication
               </p>
-              <h1 className="mt-1 font-display text-5xl text-ink">Security monitor</h1>
-              <p className="mt-1 font-mono text-[12px] text-ink-soft">
-                {users.length} users {activeSessions ? `· ${activeSessions} active sessions` : ""} ·{" "}
+              <h1 className="mt-1 font-display text-5xl leading-none text-ink">Security monitor</h1>
+              <p className="mt-2 font-mono text-[12px] text-ink-soft">
+                {users.length} users
+                {activeSessions ? ` · ${activeSessions} active sessions` : ""} ·{" "}
                 {alerts.filter((a) => !a.acknowledged).length} open alerts
               </p>
             </div>
-            <Link to="/" className="font-mono text-[12px] text-ink underline decoration-dotted">
-              ← chat
+            <Link
+              to="/"
+              className="mt-1 inline-flex items-center gap-1.5 border border-ink/20 px-2.5 py-1 font-mono text-[12px] text-ink hover:border-ink/50"
+            >
+              <span aria-hidden>←</span> chat
             </Link>
           </div>
 
@@ -68,14 +72,14 @@ export function Admin() {
               }}
             />
 
-            <div className="grid gap-5 lg:grid-cols-3">
+            <div className="grid items-start gap-5 lg:grid-cols-3">
               <div className="lg:col-span-2">
                 <RiskTimeline points={history} label={selectedLabel} />
               </div>
               <AlertsPanel alerts={alerts} />
             </div>
 
-            <div className="grid gap-5 lg:grid-cols-3">
+            <div className="grid items-start gap-5 lg:grid-cols-3">
               <div className="lg:col-span-2">
                 <EventFeed events={events} />
               </div>

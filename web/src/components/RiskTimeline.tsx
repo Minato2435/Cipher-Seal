@@ -24,11 +24,13 @@ export function RiskTimeline({ points, label }: { points: RiskPoint[]; label: st
         <span className="font-mono text-[11px] text-[#cdd6e4]">{label}</span>
       </div>
 
-      <div className="mt-3 h-44">
+      <div className="mt-3 h-40">
         {data.length < 2 ? (
-          <p className="grid h-full place-items-center text-center font-mono text-[12px] text-[#7e8aa0]">
-            Pick a user, then run a simulation — the line moves as their score updates.
-          </p>
+          <div className="grid h-full place-items-center px-6 text-center">
+            <p className="max-w-xs font-mono text-[12px] leading-relaxed text-[#7e8aa0]">
+              Pick a user row, then run a simulation. The line steps up as their score changes.
+            </p>
+          </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: -18 }}>

@@ -13,15 +13,17 @@ export function AlertsPanel({ alerts }: { alerts: Doc[] }) {
   const open = alerts.filter((a) => !a.acknowledged && !acked.has(a.id));
 
   return (
-    <section className="border border-ink/15 bg-white/70">
+    <section className="flex flex-col border border-ink/15 bg-white/70">
       <header className="border-b border-ink/10 px-4 py-2">
         <h2 className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-soft">
           alerts · {open.length}
         </h2>
       </header>
-      <div className="max-h-64 space-y-2 overflow-y-auto p-3">
+      <div className="min-h-[180px] max-h-64 flex-1 space-y-2 overflow-y-auto p-3">
         {open.length === 0 ? (
-          <p className="py-6 text-center text-sm text-ink-soft">Nothing needs attention.</p>
+          <div className="grid h-[160px] place-items-center text-center">
+            <p className="text-sm text-ink-soft">Nothing needs attention.</p>
+          </div>
         ) : (
           open.map((a) => (
             <div key={a.id} className="border border-critical/45 bg-critical/[0.04] p-3">
