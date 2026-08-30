@@ -33,6 +33,12 @@ def test_send_stores_ciphertext_only_and_read_recovers_plaintext(db, convo):
     assert "MSG_RECV" not in types
 
 
+def test_message_doc_carries_participants_for_client_queries(db, convo):
+    mid = messaging.send_message(db, convo, "alice", "hi", SECRET)
+    doc = repo.get(db, "messages", mid)
+    assert sorted(doc["participants"]) == ["alice", "bob"]
+
+
 def test_tampered_ciphertext_is_rejected_and_flagged(db, convo):
     mid = messaging.send_message(db, convo, "alice", "secret", SECRET)
     bad = base64.b64encode(b"\x00" + base64.b64decode(repo.get(db, "messages", mid)["ct_b64"])[1:]).decode()
