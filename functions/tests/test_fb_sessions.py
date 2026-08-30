@@ -44,6 +44,41 @@ def test_non_participant_rejected(db, two_users):
     assert ei.value.code == "NOT_PARTICIPANT"
 
 
+def test_terminated_session_key_loads_only_when_active_not_required(db, two_users):
+    alice, bob = two_users
+    sid = sessions.establish_session(db, alice, bob, SECRET)
+    from quantumsafe.fb.config import collection
+    db.collection(collection("sessions")).document(sid).update({"state": "terminated"})
+
+    with pytest.raises(AppError) as ei:
+        sessions.load_session_key(db, sid, alice, SECRET)
+    assert ei.value.code == "SESSION_INACTIVE"
+
+    assert len(sessions.load_session_key(db, sid, alice, SECRET, require_active=False)) == 32
+
+    # participation is still enforced on the read path
+    identity.provision_user(db, "carol", SECRET)
+    with pytest.raises(AppError) as ei2:
+        sessions.load_session_key(db, sid, "carol", SECRET, require_active=False)
+    assert ei2.value.code == "NOT_PARTICIPANT"
+
+
+def test_blocked_user_cannot_establish_session(db, two_users):
+    alice, bob = two_users
+    repo.merge(db, "users", alice, {"status": "blocked"})
+    with pytest.raises(AppError) as ei:
+        sessions.establish_session(db, alice, bob, SECRET)
+    assert ei.value.code == "ACCOUNT_BLOCKED"
+
+
+def test_high_user_cannot_establish_session_without_reauth(db, two_users):
+    alice, bob = two_users
+    repo.merge(db, "users", alice, {"status": "high"})
+    with pytest.raises(AppError) as ei:
+        sessions.establish_session(db, alice, bob, SECRET)
+    assert ei.value.code == "REAUTH_REQUIRED"
+
+
 def test_peer_without_keys_rejected(db):
     identity.provision_user(db, "alice", SECRET)
     with pytest.raises(AppError) as ei:

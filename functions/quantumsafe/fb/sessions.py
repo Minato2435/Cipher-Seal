@@ -7,7 +7,7 @@ import base64
 from quantumsafe.crypto.kdf import hkdf_sha256
 from quantumsafe.crypto.kem import kem_encapsulate
 from quantumsafe.crypto.keystore import unwrap_private_key, wrap_private_key
-from quantumsafe.fb import events, identity, repo
+from quantumsafe.fb import events, gating, identity, repo
 from quantumsafe.fb.config import collection
 from quantumsafe.fb.errors import NOT_FOUND, NOT_PARTICIPANT, SESSION_INACTIVE, AppError
 from quantumsafe.security.events import SESSION_ESTABLISH
@@ -17,6 +17,10 @@ _SESSION_KEY_ALG = "AES-256-GCM"
 
 
 def establish_session(db, caller_uid: str, peer_uid: str, app_secret: bytes) -> str:
+    # Gate first: a blocked / HIGH / elevated caller must not get KEM work done
+    # for them (and must not be able to open a fresh session post-escalation).
+    gating.gate_user(db, caller_uid)
+
     peer_ek = identity.load_kem_public(db, peer_uid)          # raises PEER_NOT_READY
     identity.load_kem_public(db, caller_uid)                  # caller must be provisioned too
 
@@ -40,12 +44,25 @@ def establish_session(db, caller_uid: str, peer_uid: str, app_secret: bytes) -> 
     return sid
 
 
-def load_session_key(db, session_id: str, requester_uid: str, app_secret: bytes) -> bytes:
+def load_session_key(
+    db,
+    session_id: str,
+    requester_uid: str,
+    app_secret: bytes,
+    *,
+    require_active: bool = True,
+) -> bytes:
+    """Unwrap a session key for a participant.
+
+    The existence and participation checks are ALWAYS enforced. ``require_active``
+    is False only for read paths: terminating a session must stop new sends, not
+    make the whole thread permanently undecryptable.
+    """
     doc = repo.get(db, "sessions", session_id)
     if doc is None:
         raise AppError(NOT_FOUND, f"session {session_id} not found")
     if requester_uid not in doc["participants"]:
         raise AppError(NOT_PARTICIPANT, "not a participant of this session")
-    if doc.get("state") != "active":
+    if require_active and doc.get("state") != "active":
         raise AppError(SESSION_INACTIVE, "session is not active")
     return unwrap_private_key(app_secret, doc["sessionKey_enc"], session_id)

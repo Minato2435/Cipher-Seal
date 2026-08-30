@@ -3,27 +3,21 @@
 from __future__ import annotations
 
 import base64
-import time
-from datetime import datetime, timezone
 
 from cryptography.exceptions import InvalidTag
 
 from quantumsafe.crypto.aead import aes256gcm_decrypt, aes256gcm_encrypt
 from quantumsafe.crypto.sign import ALG as SIGN_ALG
 from quantumsafe.crypto.sign import sign, verify
-from quantumsafe.fb import events, identity, repo, sessions
+from quantumsafe.fb import events, gating, identity, repo, sessions
 from quantumsafe.fb.errors import (
-    ACCOUNT_BLOCKED,
     DECRYPT_FAILED,
     NOT_FOUND,
     NOT_PARTICIPANT,
-    REAUTH_REQUIRED,
     SIGNATURE_INVALID,
     AppError,
 )
-from quantumsafe.security.events import MSG_RECV, MSG_SENT, TAMPER
-
-_REAUTH_WINDOW_S = 600.0
+from quantumsafe.security.events import MSG_SENT, TAMPER
 
 
 def _b64(raw: bytes) -> str:
@@ -38,18 +32,6 @@ def _binding_context(session_id: str, sender_uid: str, recipient_uid: str) -> by
     return f"{session_id}|{sender_uid}|{recipient_uid}".encode("ascii")
 
 
-def _gate_sender(db, sender_uid: str) -> None:
-    user = repo.get(db, "users", sender_uid) or {}
-    status = user.get("status", "normal")
-    if status == "blocked":
-        raise AppError(ACCOUNT_BLOCKED, "account is blocked")
-    if status == "elevated":
-        ts = user.get("reauthAt")
-        epoch = ts.timestamp() if isinstance(ts, datetime) else None
-        if epoch is None or (time.time() - epoch) > _REAUTH_WINDOW_S:
-            raise AppError(REAUTH_REQUIRED, "re-authentication required before sending")
-
-
 def send_message(db, session_id: str, sender_uid: str, plaintext: str, app_secret: bytes) -> str:
     session = repo.get(db, "sessions", session_id)
     if session is None:
@@ -58,7 +40,7 @@ def send_message(db, session_id: str, sender_uid: str, plaintext: str, app_secre
         raise AppError(NOT_PARTICIPANT, "not a participant of this session")
     recipient_uid = next(p for p in session["participants"] if p != sender_uid)
 
-    _gate_sender(db, sender_uid)
+    gating.gate_user(db, sender_uid)  # blocked / high / elevated cannot send
 
     key = sessions.load_session_key(db, session_id, sender_uid, app_secret)
     ctx = _binding_context(session_id, sender_uid, recipient_uid)
@@ -104,10 +86,15 @@ def read_message(db, message_id: str, reader_uid: str, app_secret: bytes) -> str
         raise AppError(SIGNATURE_INVALID, "message signature failed verification")
 
     repo.merge(db, "messages", message_id, {"verified": True})
-    key = sessions.load_session_key(db, msg["sessionId"], reader_uid, app_secret)
+    # `require_active=False`: history stays readable after an escalation
+    # terminated the session, so an admin can unblock and show the thread.
+    key = sessions.load_session_key(
+        db, msg["sessionId"], reader_uid, app_secret, require_active=False
+    )
     try:
         plaintext = aes256gcm_decrypt(key, iv, ct, tag, aad=ctx)
     except InvalidTag as exc:
         raise AppError(DECRYPT_FAILED, "message could not be decrypted") from exc
-    events.record_event(db, reader_uid, MSG_RECV, {"messageId": message_id})
+    # No MSG_RECV event: no feature in ai.features consumes it, so recording one
+    # only fired the risk trigger (a full rescore) on every message read.
     return plaintext.decode("utf-8")

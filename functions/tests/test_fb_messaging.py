@@ -27,8 +27,10 @@ def test_send_stores_ciphertext_only_and_read_recovers_plaintext(db, convo):
 
     assert messaging.read_message(db, mid, "bob", SECRET) == "meet at dawn"
     assert repo.get(db, "messages", mid)["verified"] is True
+    # Reading must NOT record MSG_RECV: no feature consumes it, and it fired a
+    # full risk rescore on every read.
     types = {e["type"] for e in repo.query_recent_events(db, "bob", 0.0)}
-    assert "MSG_RECV" in types
+    assert "MSG_RECV" not in types
 
 
 def test_tampered_ciphertext_is_rejected_and_flagged(db, convo):
@@ -58,6 +60,30 @@ def test_elevated_sender_needs_recent_reauth(db, convo):
 
     repo.merge(db, "users", "alice", {"reauthAt": repo.SERVER_TIMESTAMP})
     assert messaging.send_message(db, convo, "alice", "hi again", SECRET)
+
+
+def test_high_sender_needs_recent_reauth(db, convo):
+    # revoke_refresh_tokens does not kill an outstanding ID token, so HIGH has
+    # to be enforced server-side exactly like ELEVATED.
+    repo.merge(db, "users", "alice", {"status": "high"})
+    with pytest.raises(AppError) as ei:
+        messaging.send_message(db, convo, "alice", "hi", SECRET)
+    assert ei.value.code == "REAUTH_REQUIRED"
+
+    repo.merge(db, "users", "alice", {"reauthAt": repo.SERVER_TIMESTAMP})
+    assert messaging.send_message(db, convo, "alice", "hi again", SECRET)
+
+
+def test_terminated_session_is_still_readable_but_not_writable(db, convo):
+    mid = messaging.send_message(db, convo, "alice", "before the block", SECRET)
+    db.collection(collection("sessions")).document(convo).update({"state": "terminated"})
+
+    # History must survive an escalation (admin unblocks -> show the chat).
+    assert messaging.read_message(db, mid, "bob", SECRET) == "before the block"
+
+    with pytest.raises(AppError) as ei:
+        messaging.send_message(db, convo, "alice", "after the block", SECRET)
+    assert ei.value.code == "SESSION_INACTIVE"
 
 
 def test_non_participant_cannot_read(db, convo):
