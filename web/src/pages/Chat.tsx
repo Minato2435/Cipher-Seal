@@ -26,15 +26,14 @@ export function Chat() {
   const allMessages = useMessages(user?.uid);
 
   const [selectedPeer, setSelectedPeer] = useState<string | null>(null);
-  const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [copied, setCopied] = useState(false);
 
   const band = effectiveBand(status, risk.band);
   const displayName = user?.displayName || user?.email?.split("@")[0] || "you";
 
   const conversations = useMemo(
-    () => (user ? groupByPeer(sessions, user.uid).filter((c) => !hidden.has(c.peerUid)) : []),
-    [sessions, user, hidden],
+    () => (user ? groupByPeer(sessions, user.uid) : []),
+    [sessions, user],
   );
 
   const lastByPeer = useMemo(() => {
@@ -77,16 +76,7 @@ export function Chat() {
             </button>
           </div>
 
-          <StartSession
-            onStarted={(_sid, peerUid) => {
-              setHidden((h) => {
-                const n = new Set(h);
-                n.delete(peerUid);
-                return n;
-              });
-              setSelectedPeer(peerUid);
-            }}
-          />
+          <StartSession onStarted={(_sid, peerUid) => setSelectedPeer(peerUid)} />
 
           <div className="min-h-0 flex-1 overflow-y-auto">
             {user && (
@@ -119,15 +109,7 @@ export function Chat() {
         <section className="main">
           {selectedConv && user ? (
             <>
-              <MessageThread
-                conv={selectedConv}
-                items={threadItems}
-                meUid={user.uid}
-                onClear={() => {
-                  setHidden((h) => new Set(h).add(selectedConv.peerUid));
-                  setSelectedPeer(null);
-                }}
-              />
+              <MessageThread conv={selectedConv} items={threadItems} meUid={user.uid} />
               <Composer
                 activeSession={selectedConv.activeSession}
                 peerUid={selectedConv.peerUid}

@@ -8,12 +8,10 @@ export function MessageThread({
   conv,
   items,
   meUid,
-  onClear,
 }: {
   conv: Conversation;
   items: ThreadItem[];
   meUid: string;
-  onClear: () => void;
 }) {
   const peer = useUserDoc(conv.peerUid);
   const name = peerLabel(peer, conv.peerUid);
@@ -31,13 +29,6 @@ export function MessageThread({
         <span className="mono text-[11px] text-[color:var(--n-500)]">
           {conv.activeSession ? "sealed correspondence" : "session ended"}
         </span>
-        <button
-          onClick={onClear}
-          className="link-muted ml-auto !text-[11.5px]"
-          title="Hide this correspondence from your list (local only)"
-        >
-          hide
-        </button>
       </div>
 
       <div className="thread-wrap">
