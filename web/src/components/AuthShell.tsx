@@ -55,10 +55,14 @@ export function AuthShell({ mode, children }: { mode: "signin" | "register"; chi
         <div className="auth-split">
           {/* dark wax stage */}
           <aside className="auth-stage">
-            <div className="auth-stage-wordmark">Cipher &amp; Seal</div>
+            <div className="auth-stage-wordmark a-in" style={{ animationDelay: "0.05s" }}>
+              Cipher &amp; Seal
+            </div>
 
-            <div>
-              <StageLattice />
+            <div className="a-in" style={{ animationDelay: "0.18s" }}>
+              <div className="stage-lat-float">
+                <StageLattice />
+              </div>
               <p className="auth-stage-quote mt-6">
                 Correspondence sealed against a quantum future.
               </p>
@@ -69,7 +73,9 @@ export function AuthShell({ mode, children }: { mode: "signin" | "register"; chi
               </p>
             </div>
 
-            <div className="auth-stage-foot">ML-KEM-768 · ML-DSA-65 · AES-256-GCM</div>
+            <div className="auth-stage-foot a-in" style={{ animationDelay: "0.32s" }}>
+              ML-KEM-768 · ML-DSA-65 · AES-256-GCM
+            </div>
           </aside>
 
           {/* form panel */}
