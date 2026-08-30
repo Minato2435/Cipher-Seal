@@ -1,5 +1,8 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { LatticeField } from "./components/LatticeField";
+import { RequireAdmin, RequireAuth } from "./components/RequireAuth";
+import { Login } from "./pages/Login";
+import { Register } from "./pages/Register";
 
 function Placeholder({ title }: { title: string }) {
   return (
@@ -17,10 +20,24 @@ export function App() {
     <>
       <LatticeField />
       <Routes>
-        <Route path="/login" element={<Placeholder title="Sign in" />} />
-        <Route path="/register" element={<Placeholder title="Create an account" />} />
-        <Route path="/" element={<Placeholder title="Chat" />} />
-        <Route path="/admin" element={<Placeholder title="Security monitor" />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route
+          path="/"
+          element={
+            <RequireAuth>
+              <Placeholder title="Chat" />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <RequireAdmin>
+              <Placeholder title="Security monitor" />
+            </RequireAdmin>
+          }
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
