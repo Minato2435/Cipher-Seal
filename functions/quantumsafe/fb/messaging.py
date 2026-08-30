@@ -55,6 +55,8 @@ def send_message(db, session_id: str, sender_uid: str, plaintext: str, app_secre
             "sessionId": session_id,
             "senderUid": sender_uid,
             "recipientUid": recipient_uid,
+            # array-contains queryable by the web client under participant-scoped rules
+            "participants": [sender_uid, recipient_uid],
             "iv_b64": _b64(enc.iv),
             "ct_b64": _b64(enc.ciphertext),
             "tag_b64": _b64(enc.tag),
