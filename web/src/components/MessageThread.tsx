@@ -51,7 +51,16 @@ export function MessageThread({
           items.map((item, i) =>
             item.kind === "divider" ? (
               <div key={`d-${i}`} className="session-divider">
-                — new secure session —
+                <span className="rule" />
+                <span className="wax" aria-hidden />
+                fresh seal
+                {item.startedAt
+                  ? ` · ${new Date(item.startedAt).toLocaleDateString([], {
+                      day: "numeric",
+                      month: "short",
+                    })}`
+                  : ""}
+                <span className="rule" />
               </div>
             ) : (
               <MessageBubble key={(item.msg as Message).id} msg={item.msg} mineUid={meUid} />

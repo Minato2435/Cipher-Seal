@@ -497,12 +497,29 @@ h3,
   font-size: 13px;
 }
 .session-divider {
-  align-self: center;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0;
   font-family: "JetBrains Mono", monospace;
-  font-size: 10.5px;
-  letter-spacing: 1px;
+  font-size: 10px;
+  letter-spacing: 1.4px;
   text-transform: uppercase;
   color: var(--n-500);
+}
+.session-divider .rule {
+  flex: 1;
+  height: 1px;
+  background: var(--divider);
+}
+.session-divider .wax {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-500);
+  box-shadow: 0 0 0 3px var(--accent-100);
+  flex: none;
 }
 
 /* ---- composer ---- */

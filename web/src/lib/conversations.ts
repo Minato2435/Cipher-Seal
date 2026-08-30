@@ -34,12 +34,13 @@ export function groupByPeer(sessions: Session[], meUid: string): Conversation[] 
 
 export type ThreadItem =
   | { kind: "message"; msg: Message }
-  | { kind: "divider"; sessionId: string; index: number };
+  | { kind: "divider"; sessionId: string; index: number; startedAt: number };
 
 /** All messages across a conversation's sessions, time-ordered, with a divider
  *  wherever the session (and therefore the keys) changed. */
 export function buildThread(conv: Conversation, allMessages: Message[]): ThreadItem[] {
   const ids = new Set(conv.sessions.map((s) => s.id));
+  const startedAt = new Map(conv.sessions.map((s) => [s.id, s.createdAt]));
   const msgs = allMessages
     .filter((m) => ids.has(m.sessionId))
     .sort((a, b) => a.createdAt - b.createdAt);
@@ -52,7 +53,12 @@ export function buildThread(conv: Conversation, allMessages: Message[]): ThreadI
       currentSession = msg.sessionId;
       sessionCount += 1;
       if (sessionCount > 1) {
-        items.push({ kind: "divider", sessionId: msg.sessionId, index: sessionCount });
+        items.push({
+          kind: "divider",
+          sessionId: msg.sessionId,
+          index: sessionCount,
+          startedAt: startedAt.get(msg.sessionId) ?? msg.createdAt,
+        });
       }
     }
     items.push({ kind: "message", msg });
