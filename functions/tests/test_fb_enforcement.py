@@ -60,6 +60,24 @@ def test_admin_set_status_normal_clears_block(db, auth_user):
     assert any(p["actor"] == "admin" for p in _all(db, "policyActions"))
 
 
+def test_blocked_account_does_not_auto_unblock_only_admin_restores(db, auth_user):
+    uid = auth_user
+    enforcement.apply_policy(db, uid, _assessment("CRITICAL", 0.9), "HIGH")
+    assert repo.get(db, "users", uid)["status"] == "blocked"
+    before = len(_all(db, "policyActions"))
+
+    # The risk window rolls over and the user rescores to NORMAL: the RESTORE
+    # must be refused -- the block is sticky.
+    action = enforcement.apply_policy(db, uid, _assessment("NORMAL", 0.1), "CRITICAL")
+    assert action.action == "RESTORE"
+    assert repo.get(db, "users", uid)["status"] == "blocked"
+    assert get_auth().get_user(uid).custom_claims.get("status") == "blocked"
+    assert len(_all(db, "policyActions")) == before
+
+    enforcement.set_status(db, uid, "normal", actor="admin")
+    assert repo.get(db, "users", uid)["status"] == "normal"
+
+
 def test_apply_policy_tolerates_uid_with_no_auth_user(db):
     uid = "ghost-uid-no-auth-record"
     repo.merge(db, "users", uid, {"status": "normal"})
