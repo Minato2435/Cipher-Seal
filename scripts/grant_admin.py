@@ -11,6 +11,8 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "functions"))
 
+os.environ.pop("QS_COLLECTION_PREFIX", None)  # hit real collections, never test_*
+
 from quantumsafe.fb import repo                     # noqa: E402
 from quantumsafe.fb.client import get_auth, get_db  # noqa: E402
 

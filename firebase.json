@@ -16,7 +16,10 @@
         ".secret.local",
         "tests",
         "__pycache__",
-        "*.local"
+        "*.local",
+        ".env",
+        ".env.*",
+        "*.env"
       ]
     }
   ]

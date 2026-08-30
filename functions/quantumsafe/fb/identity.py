@@ -21,7 +21,9 @@ def provision_user(
         return False
 
     material = generate_user_keys(app_secret, uid)
-    repo.set(db, "publicKeys", uid, material["public"])
+    # publicKeys is written LAST because it is the idempotency sentinel above:
+    # a crash mid-provision then leaves it unwritten, so a re-run repairs the
+    # user instead of leaving them permanently half-provisioned.
     repo.set(db, "privateKeys", uid, material["private"])
     repo.merge(
         db,
@@ -35,6 +37,7 @@ def provision_user(
             "createdAt": repo.SERVER_TIMESTAMP,
         },
     )
+    repo.set(db, "publicKeys", uid, material["public"])
     return True
 
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from datetime import datetime, timezone
 
 from google.api_core.exceptions import FailedPrecondition
@@ -47,6 +48,10 @@ def query_recent_events(db, uid: str, since_ts_epoch: float) -> list[dict]:
     except FailedPrecondition:
         # Composite (uid, ts) index not present for this collection group
         # (e.g. the per-session test_<uuid>_ prefix). Filter/order client-side.
+        # In production (no prefix) this fallback would be an unbounded
+        # full-collection scan on every trigger, so surface the missing index.
+        if not os.environ.get("QS_COLLECTION_PREFIX"):
+            raise
         rows = [d.to_dict() for d in base.stream()]
         rows = [r for r in rows if _ts_at_least(r.get("ts"), since)]
         rows.sort(key=lambda r: r["ts"])
@@ -63,5 +68,9 @@ def query_active_sessions_for(db, uid: str) -> list[tuple[str, dict]]:
     except FailedPrecondition:
         # Composite (participants, state) index not present for this collection
         # group (e.g. the per-session test_<uuid>_ prefix). Filter client-side.
+        # In production (no prefix) a missing index must not silently become an
+        # unbounded full-collection scan.
+        if not os.environ.get("QS_COLLECTION_PREFIX"):
+            raise
         rows = [(d.id, d.to_dict()) for d in base.stream()]
         return [(i, r) for i, r in rows if r.get("state") == "active"]
