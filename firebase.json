@@ -1,0 +1,23 @@
+{
+  "firestore": {
+    "database": "default2",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "runtime": "python312",
+      "ignore": [
+        "venv",
+        ".venv",
+        "serviceAccountKey.json",
+        ".secret.local",
+        "tests",
+        "__pycache__",
+        "*.local"
+      ]
+    }
+  ]
+}

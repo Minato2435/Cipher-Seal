@@ -16,3 +16,8 @@ serviceAccountKey.json
 *serviceAccount*.json
 .secret.local
 functions/.secret.local
+
+# Firebase build/deploy artifacts
+.firebase/
+firebase-debug.log
+functions/venv/
