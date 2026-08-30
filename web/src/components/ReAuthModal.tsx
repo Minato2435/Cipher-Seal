@@ -36,28 +36,29 @@ export function ReAuthModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[60] grid place-items-center bg-base/70 px-6 backdrop-blur-sm">
-      <div role="dialog" aria-modal="true" className="glass w-full max-w-sm rounded-2xl p-6">
-        <h2 className="font-display text-xl font-semibold text-text">Confirm it's you</h2>
-        <p className="mt-2 text-[13.5px] leading-relaxed text-muted">
+    <div className="dialog-backdrop">
+      <div role="dialog" aria-modal="true" className="dialog">
+        <div className="dialog-title">Confirm it's you</div>
+        <div className="dialog-body">
           Your recent activity looked unusual. Re-enter your password to keep sending.
-        </p>
-        <form onSubmit={submit} className="mt-4 space-y-3">
+        </div>
+        <form onSubmit={submit}>
           <input
             ref={ref}
             type="password"
+            className="input"
+            style={{ marginBottom: 12 }}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="input"
             autoComplete="current-password"
           />
-          {error && <p className="text-[12px] text-risk-high">{error}</p>}
-          <div className="flex gap-2">
+          {error && <p className="field-error" style={{ marginBottom: 12 }}>{error}</p>}
+          <div className="flex justify-end gap-2.5">
+            <button type="button" onClick={onCancel} className="btn">
+              Cancel
+            </button>
             <button type="submit" disabled={busy} className="btn btn-primary">
               {busy ? "Checking…" : "Confirm"}
-            </button>
-            <button type="button" onClick={onCancel} className="btn">
-              cancel
             </button>
           </div>
         </form>

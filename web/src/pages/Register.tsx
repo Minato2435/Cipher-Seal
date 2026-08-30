@@ -1,6 +1,6 @@
 import { type FormEvent, useState } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { auth } from "../lib/firebase";
 import { api } from "../lib/api";
 import { AuthShell, Field } from "../components/AuthShell";
@@ -29,27 +29,21 @@ export function Register() {
       await api.registerKeys(name.trim() || undefined);
       nav("/", { replace: true });
     } catch (err) {
-      const code = (err as { code?: string }).code ?? "";
-      setError(authMessage(code));
+      setError(authMessage((err as { code?: string }).code ?? ""));
       setBusy(false);
     }
   }
 
   return (
-    <AuthShell
-      title="Create an account"
-      subtitle="Registering generates your post-quantum keypair."
-      footer={
-        <>
-          Already have an account?{" "}
-          <Link to="/login" className="text-quantum font-semibold">
-            Sign in
-          </Link>
-        </>
-      }
-    >
-      <form onSubmit={submit} className="space-y-4">
-        <Field label="Display name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
+    <AuthShell mode="register">
+      <form onSubmit={submit}>
+        <Field
+          label="Display name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          autoComplete="name"
+          placeholder="Elena Marsh"
+        />
         <Field
           label="Email"
           type="email"
@@ -57,6 +51,7 @@ export function Register() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           autoComplete="email"
+          placeholder="you@domain.com"
         />
         <Field
           label="Password"
@@ -65,10 +60,17 @@ export function Register() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="new-password"
+          placeholder="••••••••"
         />
-        {error && <p className="text-[13px] text-risk-high">{error}</p>}
-        <button type="submit" disabled={busy} className="btn btn-primary w-full">
-          {busy ? "Generating your keypair…" : "Create account"}
+        {error && <p className="field-error mb-3">{error}</p>}
+        <button type="submit" disabled={busy} className="btn btn-primary btn-block">
+          {busy ? (
+            <>
+              <span className="spin" /> Provisioning post-quantum keypair…
+            </>
+          ) : (
+            "Create account"
+          )}
         </button>
       </form>
     </AuthShell>

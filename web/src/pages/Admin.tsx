@@ -38,26 +38,20 @@ export function Admin() {
 
   return (
     <RiskFrame band={myRisk.band}>
-      <main className="min-h-screen px-5 pb-16 pt-14 md:px-10">
+      <div className="max-h-[calc(100vh-60px)] overflow-y-auto px-6 pb-14 pt-8 md:px-10">
         <div className="mx-auto max-w-6xl">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-cyan">
-                quantum-safe communication
+              <p className="section-title" style={{ color: "var(--accent-700)" }}>
+                Cipher &amp; Seal
               </p>
-              <h1 className="mt-1.5 font-display text-[46px] font-semibold leading-none text-text">
-                Security monitor
-              </h1>
-              <p className="mt-2 font-mono text-[12px] text-faint">
-                {users.length} accounts · {openAlerts} open{" "}
-                {openAlerts === 1 ? "alert" : "alerts"}
+              <h1 className="font-head mt-1 text-[34px]">Security monitor</h1>
+              <p className="mt-1 text-[13px] text-[color:var(--n-600)]">
+                {users.length} accounts · {openAlerts} open {openAlerts === 1 ? "alert" : "alerts"}
               </p>
             </div>
-            <Link
-              to="/"
-              className="mt-1 inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 font-mono text-[12px] text-text transition hover:border-violet/50"
-            >
-              <span aria-hidden>←</span> chat
+            <Link to="/" className="btn !px-3 !py-1.5 !text-[13px]">
+              ← Correspondence
             </Link>
           </div>
 
@@ -88,7 +82,7 @@ export function Admin() {
             </div>
           </div>
         </div>
-      </main>
+      </div>
     </RiskFrame>
   );
 }

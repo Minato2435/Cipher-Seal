@@ -7,7 +7,7 @@ import { useAuthUser } from "../lib/useAuthUser";
 import { useRiskBand } from "../lib/useRiskBand";
 import { effectiveBand, useMyStatus } from "../lib/useMyStatus";
 import { useSessions } from "../lib/useSessions";
-import { useMessages } from "../lib/useMessages";
+import { useMessages, type Message } from "../lib/useMessages";
 import { buildThread, groupByPeer } from "../lib/conversations";
 import { peerLabel, useUserDoc } from "../lib/useUserDoc";
 import { RiskFrame } from "../components/RiskFrame";
@@ -17,7 +17,6 @@ import { StartSession } from "../components/StartSession";
 import { MessageThread } from "../components/MessageThread";
 import { Composer } from "../components/Composer";
 import { EmptyThread } from "../components/EmptyThread";
-import { Avatar } from "../components/Avatar";
 
 const BANDS = ["NORMAL", "ELEVATED", "HIGH", "CRITICAL"];
 
@@ -40,6 +39,16 @@ export function Chat() {
     () => (user ? groupByPeer(sessions, user.uid).filter((c) => !hidden.has(c.peerUid)) : []),
     [sessions, user, hidden],
   );
+
+  const lastByPeer = useMemo(() => {
+    const m = new Map<string, Message>();
+    for (const conv of conversations) {
+      const ids = new Set(conv.sessions.map((s) => s.id));
+      for (const msg of allMessages) if (ids.has(msg.sessionId)) m.set(conv.peerUid, msg);
+    }
+    return m;
+  }, [conversations, allMessages]);
+
   const selectedConv = conversations.find((c) => c.peerUid === selectedPeer) ?? null;
   const threadItems = useMemo(
     () => (selectedConv ? buildThread(selectedConv, allMessages) : []),
@@ -57,116 +66,95 @@ export function Chat() {
 
   return (
     <RiskFrame band={band}>
-      <div className="flex h-[calc(100vh-0px)] min-h-[560px]">
-        <aside className="flex w-[304px] shrink-0 flex-col gap-4 border-r border-line px-4 pb-4 pt-14">
-          {/* identity */}
-          <div className="flex items-center gap-3">
-            <Avatar uid={user?.uid ?? ""} name={displayName} size={40} />
-            <div className="min-w-0">
-              <p className="truncate font-display text-[17px] font-semibold text-text">
-                {displayName}
-              </p>
-              <p className="truncate font-mono text-[10.5px] text-faint">{user?.email}</p>
-            </div>
+      <div className="console">
+        <aside className="rail">
+          <div className="identity">
+            <div className="name">{displayName}</div>
+            <div className="email mono">{user?.email}</div>
+            <button className="id-chip" onClick={copyId} title="Copy your user ID">
+              <svg viewBox="0 0 16 16" width="11" height="11" fill="none">
+                <rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" />
+                <path d="M3 10.5V3.5A1.5 1.5 0 0 1 4.5 2h7" stroke="currentColor" />
+              </svg>
+              {copied ? "copied" : `id · ${middleTruncate(user?.uid ?? "", 14)}`}
+            </button>
           </div>
-          <button
-            onClick={copyId}
-            className="glass -mt-1 flex items-center gap-1.5 self-start rounded-full px-2.5 py-1 font-mono text-[10.5px] text-muted transition hover:text-text"
-            title="Copy your user ID"
-          >
-            <span className="text-faint">id</span>
-            <span className="text-text">
-              {copied ? "copied ✓" : middleTruncate(user?.uid ?? "", 18)}
-            </span>
-            <span aria-hidden>⧉</span>
-          </button>
 
-          {/* conversations */}
-          <div className="flex min-h-0 flex-1 flex-col">
-            <div className="flex items-center justify-between pb-1">
-              <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-faint">
-                conversations
-              </h2>
-              <StartSession
-                onStarted={(_sid, peerUid) => {
-                  setHidden((h) => {
-                    const n = new Set(h);
-                    n.delete(peerUid);
-                    return n;
-                  });
-                  setSelectedPeer(peerUid);
-                }}
-              />
-            </div>
-            <div className="mt-1 min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+          <StartSession
+            onStarted={(_sid, peerUid) => {
+              setHidden((h) => {
+                const n = new Set(h);
+                n.delete(peerUid);
+                return n;
+              });
+              setSelectedPeer(peerUid);
+            }}
+          />
+
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {user && (
               <ConversationList
                 conversations={conversations}
+                lastByPeer={lastByPeer}
                 selectedPeer={selectedPeer}
                 onSelect={setSelectedPeer}
               />
-            </div>
+            )}
           </div>
 
+          <div className="section-title mb-2 mt-4">Risk instrument</div>
           <RiskInstrument risk={risk} />
 
           {import.meta.env.DEV && (
-            <div>
-              <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-faint">
-                dev · preview band
-              </p>
-              <div className="mt-1 flex flex-wrap gap-1">
-                {[...BANDS, "LIVE"].map((b) => {
-                  const on = b === "LIVE" ? override === null : override === b;
-                  return (
-                    <button
-                      key={b}
-                      onClick={() => setOverride(b === "LIVE" ? null : override === b ? null : b)}
-                      className={`rounded-md border px-1.5 py-0.5 font-mono text-[10px] lowercase transition ${
-                        on
-                          ? "border-violet bg-violet/20 text-text"
-                          : "border-line text-muted hover:border-violet/50"
-                      }`}
-                    >
-                      {b.toLowerCase()}
-                    </button>
-                  );
-                })}
-              </div>
+            <div className="mt-3 flex flex-wrap items-center gap-1">
+              <span className="mono mr-1 text-[9px] uppercase tracking-wider text-[color:var(--n-500)]">
+                preview
+              </span>
+              {[...BANDS, "LIVE"].map((b) => {
+                const on = b === "LIVE" ? override === null : override === b;
+                return (
+                  <button
+                    key={b}
+                    onClick={() => setOverride(b === "LIVE" ? null : override === b ? null : b)}
+                    className="pill lowercase"
+                    style={{
+                      color: on ? "var(--accent-800)" : "var(--n-500)",
+                      background: on ? "var(--accent-100)" : "transparent",
+                    }}
+                  >
+                    {b.toLowerCase()}
+                  </button>
+                );
+              })}
             </div>
           )}
 
-          <div className="flex items-center justify-between border-t border-line pt-3 font-mono text-[11px]">
+          <div className="mt-4 flex items-center justify-between pt-2">
             {claims.role === "admin" ? (
-              <Link to="/admin" className="text-quantum font-semibold">
-                security monitor →
+              <Link to="/admin" className="link-muted">
+                Security monitor
               </Link>
             ) : (
               <span />
             )}
-            <button onClick={() => signOut(auth)} className="text-faint hover:text-text">
-              sign out
+            <button onClick={() => signOut(auth)} className="link-muted">
+              Sign out
             </button>
           </div>
         </aside>
 
-        <main className="flex min-w-0 flex-1 flex-col">
+        <section className="main">
           {selectedConv && user ? (
             <>
-              <div className="flex items-center justify-end px-6 pt-3">
-                <button
-                  onClick={() => {
-                    setHidden((h) => new Set(h).add(selectedConv.peerUid));
-                    setSelectedPeer(null);
-                  }}
-                  className="font-mono text-[10.5px] text-faint hover:text-risk-high"
-                  title="Hide this conversation from your list (local only)"
-                >
-                  clear from view
-                </button>
-              </div>
-              <div className="min-h-0 flex-1">
-                <MessageThread conv={selectedConv} items={threadItems} meUid={user.uid} />
-              </div>
+              <MessageThread
+                conv={selectedConv}
+                items={threadItems}
+                meUid={user.uid}
+                onClear={() => {
+                  setHidden((h) => new Set(h).add(selectedConv.peerUid));
+                  setSelectedPeer(null);
+                }}
+              />
               <Composer
                 activeSession={selectedConv.activeSession}
                 peerUid={selectedConv.peerUid}
@@ -178,7 +166,7 @@ export function Chat() {
           ) : (
             <EmptyThread />
           )}
-        </main>
+        </section>
       </div>
     </RiskFrame>
   );

@@ -1,6 +1,6 @@
 import { type FormEvent, useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { auth } from "../lib/firebase";
 import { api } from "../lib/api";
 import { AuthShell, Field } from "../components/AuthShell";
@@ -18,7 +18,6 @@ export function Login() {
     setError("");
     try {
       await signInWithEmailAndPassword(auth, email.trim(), password);
-      // Idempotent — covers accounts made before this app existed.
       await api.registerKeys().catch(() => undefined);
       nav("/", { replace: true });
     } catch {
@@ -28,19 +27,8 @@ export function Login() {
   }
 
   return (
-    <AuthShell
-      title="Sign in"
-      subtitle="Your keys are unlocked on this device."
-      footer={
-        <>
-          New here?{" "}
-          <Link to="/register" className="text-quantum font-semibold">
-            Create an account
-          </Link>
-        </>
-      }
-    >
-      <form onSubmit={submit} className="space-y-4">
+    <AuthShell mode="signin">
+      <form onSubmit={submit}>
         <Field
           label="Email"
           type="email"
@@ -48,6 +36,7 @@ export function Login() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           autoComplete="email"
+          placeholder="you@domain.com"
         />
         <Field
           label="Password"
@@ -56,10 +45,17 @@ export function Login() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="current-password"
+          placeholder="••••••••"
         />
-        {error && <p className="text-[13px] text-risk-high">{error}</p>}
-        <button type="submit" disabled={busy} className="btn btn-primary w-full">
-          {busy ? "Signing in…" : "Sign in"}
+        {error && <p className="field-error mb-3">{error}</p>}
+        <button type="submit" disabled={busy} className="btn btn-primary btn-block">
+          {busy ? (
+            <>
+              <span className="spin" /> Verifying signature…
+            </>
+          ) : (
+            "Sign in"
+          )}
         </button>
       </form>
     </AuthShell>

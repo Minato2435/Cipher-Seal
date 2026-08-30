@@ -20,28 +20,29 @@ function detail(meta: Record<string, unknown> | undefined): string {
 
 export function EventFeed({ events }: { events: Doc[] }) {
   return (
-    <section className="glass overflow-hidden rounded-xl">
-      <header className="border-b border-line px-4 py-2.5">
-        <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-faint">event feed</h2>
+    <section className="card overflow-hidden">
+      <header className="border-b border-[color:var(--divider)] px-4 py-3">
+        <span className="section-title">Event feed</span>
       </header>
-      <div className="max-h-72 divide-y divide-line/60 overflow-y-auto font-mono text-[12px]">
+      <div className="mono max-h-72 divide-y divide-[color:var(--divider)] overflow-y-auto text-[12px]">
         {events.length === 0 ? (
-          <p className="px-4 py-8 text-center text-faint">No events recorded.</p>
+          <p className="px-4 py-8 text-center text-[color:var(--n-500)]">No events recorded.</p>
         ) : (
           events.map((e) => {
             const type = (e.type as string) ?? "";
             return (
               <div key={e.id} className="flex items-baseline gap-3 px-4 py-1.5">
-                <span className="text-faint">{ts(e.ts)}</span>
+                <span className="text-[color:var(--n-500)]">{ts(e.ts)}</span>
                 <span
-                  className={`w-32 shrink-0 ${HOT.has(type) ? "text-risk-high" : "text-text"}`}
+                  className="w-32 shrink-0"
+                  style={{ color: HOT.has(type) ? "var(--risk-high)" : "var(--text)" }}
                 >
                   {type}
                 </span>
-                <span className="w-20 shrink-0 text-faint">
+                <span className="w-20 shrink-0 text-[color:var(--n-500)]">
                   {middleTruncate((e.uid as string) ?? "", 8)}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-muted">
+                <span className="min-w-0 flex-1 truncate text-[color:var(--n-600)]">
                   {detail(e.meta as Record<string, unknown>)}
                 </span>
               </div>

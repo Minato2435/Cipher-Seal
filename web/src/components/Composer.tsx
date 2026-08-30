@@ -5,11 +5,7 @@ import { api, ApiError } from "../lib/api";
 import { fingerprint } from "../lib/format";
 import type { Session } from "../lib/useSessions";
 import { ReAuthModal } from "./ReAuthModal";
-import {
-  type StripData,
-  type StripPhase,
-  TransformationStrip,
-} from "./TransformationStrip";
+import { type StripData, type StripPhase, TransformationStrip } from "./TransformationStrip";
 
 const EMPTY: StripData = { plaintext: "", sessionFp: "", ctB64: "", sigBytes: 0 };
 
@@ -67,6 +63,7 @@ export function Composer({
       });
       setPhase("done");
       setText("");
+      window.setTimeout(() => setPhase("idle"), 2600);
     } catch (err) {
       if (err instanceof ApiError && err.code === "REAUTH_REQUIRED") {
         pending.current = body;
@@ -76,7 +73,7 @@ export function Composer({
         setLockedByApi(true);
         setPhase("idle");
       } else if (err instanceof ApiError && err.code === "SESSION_INACTIVE") {
-        setNotice("This channel has closed. Open a new one to keep talking.");
+        setNotice("This channel has closed. Open a new one to keep writing.");
         setPhase("idle");
       } else {
         setNotice("Couldn't send. Try again.");
@@ -91,20 +88,12 @@ export function Composer({
     if (body && !locked) void doSend(body);
   }
 
-  if (locked) {
+  if (!activeSession && !locked) {
     return (
-      <div className="border-t border-risk-critical/40 bg-risk-critical/10 px-6 py-3 text-[13px] text-risk-critical">
-        This account is locked. An administrator can restore it.
-      </div>
-    );
-  }
-
-  if (!activeSession) {
-    return (
-      <div className="flex items-center justify-between gap-4 border-t border-line px-6 py-4">
-        <p className="text-[13px] text-faint">
+      <div className="composer-wrap flex flex-wrap items-center justify-between gap-3">
+        <span className="text-[13px] text-[color:var(--n-600)]">
           The secure channel with {peerName} is closed.
-        </p>
+        </span>
         <button onClick={openChannel} disabled={opening} className="btn btn-primary">
           {opening ? "Running key exchange…" : "Open a new channel"}
         </button>
@@ -113,12 +102,20 @@ export function Composer({
   }
 
   return (
-    <div>
-      {notice && <p className="border-t border-line px-6 py-2 text-[13px] text-risk-high">{notice}</p>}
+    <div className="composer-wrap">
+      {locked && (
+        <div className="locked-note">This account is locked. An administrator can restore it.</div>
+      )}
+      {notice && !locked && (
+        <div className="locked-note" style={{ color: "var(--risk-high)", borderColor: "var(--risk-high)", background: "var(--risk-high-soft)" }}>
+          {notice}
+        </div>
+      )}
 
-      <form onSubmit={submit} className="flex items-end gap-3 border-t border-line px-6 py-3">
+      <form onSubmit={submit} className="composer">
         <textarea
           value={text}
+          disabled={locked}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
@@ -127,21 +124,18 @@ export function Composer({
             }
           }}
           rows={1}
-          placeholder="Write a message — sealed before it leaves this device"
-          className="input max-h-28 min-h-[42px] flex-1 resize-none"
+          placeholder={locked ? "sending is disabled" : "Write your letter — sealed before it leaves this tab."}
         />
         <button
           type="submit"
-          disabled={phase === "sending" || !text.trim()}
-          className="btn btn-primary"
+          disabled={locked || phase === "sending" || !text.trim()}
+          className="btn btn-primary self-end"
         >
-          send
+          Send
         </button>
       </form>
 
-      <div className="px-6 pb-3">
-        <TransformationStrip phase={phase} data={data} />
-      </div>
+      <TransformationStrip phase={phase} data={data} />
 
       {reauth && (
         <ReAuthModal

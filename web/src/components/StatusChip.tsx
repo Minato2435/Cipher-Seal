@@ -1,19 +1,15 @@
-const MAP: Record<string, { label: string; color: string }> = {
-  normal: { label: "normal", color: "#5B6478" },
-  elevated: { label: "elevated", color: "#F2A93B" },
-  high: { label: "high", color: "#F26430" },
-  blocked: { label: "blocked", color: "#F03D5F" },
+const MAP: Record<string, string> = {
+  normal: "var(--n-500)",
+  elevated: "var(--risk-elevated)",
+  high: "var(--risk-high)",
+  blocked: "var(--risk-critical)",
 };
 
 export function StatusChip({ status }: { status?: string }) {
-  const s = MAP[status ?? "normal"] ?? MAP.normal;
+  const color = MAP[status ?? "normal"] ?? MAP.normal;
   return (
-    <span className="pill lowercase" style={{ color: s.color }}>
-      <span
-        className="h-1.5 w-1.5 rounded-full"
-        style={{ background: s.color, boxShadow: `0 0 8px ${s.color}` }}
-      />
-      {s.label}
+    <span className="pill lowercase" style={{ color }}>
+      {status ?? "normal"}
     </span>
   );
 }

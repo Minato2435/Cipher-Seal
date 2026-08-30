@@ -26,45 +26,46 @@ export function AttackSim({ targetUid }: { targetUid: string | null }) {
       const { events } = await api.simulateAttack(kind, uid.trim());
       setResult(`Wrote ${events} events — watch the monitor.`);
     } catch (e) {
-      if (e instanceof ApiError && e.code === "FORBIDDEN")
-        setResult("Only an admin can target another user.");
-      else setResult("Couldn't run the simulation.");
+      setResult(
+        e instanceof ApiError && e.code === "FORBIDDEN"
+          ? "Only an admin can target another user."
+          : "Couldn't run the simulation.",
+      );
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <section className="glass rounded-xl p-4">
-      <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-faint">
-        attack simulator
-      </h2>
+    <section className="card p-4">
+      <span className="section-title">Attack simulator</span>
 
-      <label className="mt-3 block text-[12px] font-medium text-muted">
-        target user ID
+      <div className="field mt-3">
+        <label>Target user ID</label>
         <input
+          className="input mono"
           value={uid}
           onChange={(e) => setUid(e.target.value)}
           placeholder="pick a row above, or paste an ID"
-          className="input mt-1.5 font-mono text-[12px]"
         />
-      </label>
+      </div>
       {targetUid && (
-        <p className="mt-1 font-mono text-[10.5px] text-faint">
+        <p className="mono -mt-1 mb-2 text-[10.5px] text-[color:var(--n-500)]">
           selected: {middleTruncate(targetUid, 14)}
         </p>
       )}
 
-      <div className="mt-3 flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-1.5">
         {KINDS.map((k) => (
           <button
             key={k.id}
             onClick={() => setKind(k.id)}
-            className={`rounded-lg border px-2 py-1 font-mono text-[11px] lowercase transition ${
+            className="btn !px-2.5 !py-1 !text-[11.5px]"
+            style={
               kind === k.id
-                ? "border-violet bg-violet/20 text-text"
-                : "border-line text-muted hover:border-violet/50"
-            }`}
+                ? { borderColor: "var(--accent-600)", color: "var(--accent-800)", background: "var(--accent-100)" }
+                : undefined
+            }
           >
             {k.label}
           </button>
@@ -75,7 +76,7 @@ export function AttackSim({ targetUid }: { targetUid: string | null }) {
         {busy ? "Running…" : "Run simulation"}
       </button>
 
-      {result && <p className="mt-2 font-mono text-[11px] text-muted">{result}</p>}
+      {result && <p className="mt-2 text-[12px] text-[color:var(--n-600)]">{result}</p>}
     </section>
   );
 }

@@ -26,46 +26,53 @@ export function StartSession({
       if (err instanceof ApiError && err.code === "PEER_NOT_READY")
         setError("That user hasn't set up their keys yet — ask them to sign in once.");
       else if (err instanceof ApiError && err.code === "NOT_FOUND") setError("No user with that ID.");
-      else setError("Couldn't start the session. Check the ID and try again.");
+      else setError("Couldn't begin the correspondence. Check the ID and try again.");
       setBusy(false);
     }
   }
 
   return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="grid h-7 w-7 place-items-center rounded-lg border border-line text-muted transition hover:border-violet/60 hover:text-text"
-        aria-label="New conversation"
-      >
-        {open ? "×" : "+"}
-      </button>
+    <>
+      <div className="mb-2 mt-4 flex items-center justify-between">
+        <span className="section-title">Correspondents</span>
+        <button
+          className="icon-btn"
+          aria-label={open ? "Close" : "New correspondent"}
+          onClick={() => setOpen((v) => !v)}
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path
+              d={open ? "M2 2l8 8M10 2l-8 8" : "M6 1v10M1 6h10"}
+              stroke="currentColor"
+              strokeWidth="1.3"
+              strokeLinecap="round"
+            />
+          </svg>
+        </button>
+      </div>
 
       {open && (
-        <form
-          onSubmit={submit}
-          className="glass absolute right-0 top-9 z-30 w-72 space-y-2.5 rounded-xl p-3.5 shadow-2xl"
-        >
-          <label className="block text-[12px] font-medium text-text">
-            Peer's user ID
+        <form onSubmit={submit} className="new-session-form mb-3">
+          <div className="field" style={{ marginBottom: 8 }}>
+            <label htmlFor="peerId">Peer's user ID</label>
             <input
+              id="peerId"
               autoFocus
+              className="input mono"
               value={peer}
               onChange={(e) => setPeer(e.target.value)}
-              placeholder="uGrMQRQ…"
-              className="input mt-1.5 font-mono text-[12px]"
+              placeholder="e.g. a41c…08f2"
             />
-          </label>
-          <p className="text-[11px] leading-relaxed text-faint">
-            They copy it from the <span className="text-muted">id</span> chip at the top of their
-            sidebar.
+          </div>
+          <p className="mb-2 text-[11.5px] text-[color:var(--n-500)]">
+            They copy it from the id chip at the top of their sidebar.
           </p>
-          {error && <p className="text-[12px] text-risk-high">{error}</p>}
-          <button type="submit" disabled={busy} className="btn btn-primary w-full">
-            {busy ? "Running key exchange…" : "Start secure channel"}
+          {error && <p className="field-error mb-2">{error}</p>}
+          <button type="submit" disabled={busy} className="btn btn-primary btn-block !py-2 !text-[12.5px]">
+            {busy ? "Running key exchange…" : "Run key exchange"}
           </button>
         </form>
       )}
-    </div>
+    </>
   );
 }

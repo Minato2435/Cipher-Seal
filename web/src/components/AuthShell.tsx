@@ -1,41 +1,42 @@
 import type { ReactNode } from "react";
+import { Link } from "react-router-dom";
 
-export function AuthShell({
-  title,
-  subtitle,
-  children,
-  footer,
-}: {
-  title: string;
-  subtitle: string;
-  children: ReactNode;
-  footer: ReactNode;
-}) {
+export function AuthShell({ mode, children }: { mode: "signin" | "register"; children: ReactNode }) {
   return (
-    <main className="grid min-h-screen place-items-center px-6 py-16">
-      <div className="w-full max-w-sm">
-        <div className="mb-6 grid h-12 w-12 place-items-center rounded-2xl grad-quantum shadow-[0_10px_40px_-8px_rgba(124,92,255,.6)]">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path
-              d="M12 2 4 6v6c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6l-8-4Z"
-              stroke="#0A0D16"
-              strokeWidth="1.6"
-              strokeLinejoin="round"
-            />
-            <path d="m9 12 2 2 4-4.5" stroke="#0A0D16" strokeWidth="1.8" strokeLinecap="round" />
+    <div className="frame-outer">
+      <div className="risk-frame">
+        <div className="risk-plate">Calm</div>
+        <div className="auth-wrap">
+          <svg
+            width="52"
+            height="40"
+            viewBox="0 0 52 40"
+            fill="none"
+            className="mx-auto mb-4 block"
+            aria-hidden="true"
+          >
+            <circle cx="8" cy="34" r="1.6" fill="#201f1d" />
+            <path d="M8 34 L40 24" stroke="#201f1d" strokeWidth="1.3" />
+            <path d="M8 34 L16 6" stroke="#201f1d" strokeWidth="1.3" />
+            <path d="M36 21.3 L40 24 L37.6 27.6" stroke="#201f1d" strokeWidth="1.1" fill="none" strokeLinejoin="round" />
+            <path d="M12.3 12.3 L16 6 L19 9.4" stroke="#201f1d" strokeWidth="1.1" fill="none" strokeLinejoin="round" />
           </svg>
+          <div className="wordmark">Cipher &amp; Seal</div>
+          <div className="auth-tag">Correspondence sealed against a quantum future</div>
+
+          <div className="seg" style={{ marginBottom: 28 }}>
+            <Link to="/login" aria-pressed={mode === "signin"} className="!no-underline">
+              Sign in
+            </Link>
+            <Link to="/register" aria-pressed={mode === "register"} className="!no-underline">
+              Register
+            </Link>
+          </div>
+
+          {children}
         </div>
-        <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-cyan">
-          quantum-safe communication
-        </p>
-        <h1 className="mt-2 font-display text-[34px] font-semibold leading-tight text-text">
-          {title}
-        </h1>
-        <p className="mt-1 text-[13.5px] text-faint">{subtitle}</p>
-        <div className="mt-7">{children}</div>
-        <p className="mt-6 text-[13px] text-faint">{footer}</p>
       </div>
-    </main>
+    </div>
   );
 }
 
@@ -44,9 +45,9 @@ export function Field({
   ...props
 }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <label className="block">
-      <span className="text-[12.5px] font-medium text-muted">{label}</span>
-      <input {...props} className="input mt-1.5" />
-    </label>
+    <div className="field">
+      <label>{label}</label>
+      <input {...props} className="input" />
+    </div>
   );
 }
