@@ -18,8 +18,6 @@ import { MessageThread } from "../components/MessageThread";
 import { Composer } from "../components/Composer";
 import { EmptyThread } from "../components/EmptyThread";
 
-const BANDS = ["NORMAL", "ELEVATED", "HIGH", "CRITICAL"];
-
 export function Chat() {
   const { user, claims } = useAuthUser();
   const risk = useRiskBand(user?.uid);
@@ -27,12 +25,11 @@ export function Chat() {
   const sessions = useSessions(user?.uid);
   const allMessages = useMessages(user?.uid);
 
-  const [override, setOverride] = useState<string | null>(null);
   const [selectedPeer, setSelectedPeer] = useState<string | null>(null);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [copied, setCopied] = useState(false);
 
-  const band = override ?? effectiveBand(status, risk.band);
+  const band = effectiveBand(status, risk.band);
   const displayName = user?.displayName || user?.email?.split("@")[0] || "you";
 
   const conversations = useMemo(
@@ -104,30 +101,6 @@ export function Chat() {
 
           <div className="section-title mb-2 mt-4">Risk instrument</div>
           <RiskInstrument risk={risk} />
-
-          {import.meta.env.DEV && (
-            <div className="mt-3 flex flex-wrap items-center gap-1">
-              <span className="mono mr-1 text-[9px] uppercase tracking-wider text-[color:var(--n-500)]">
-                preview
-              </span>
-              {[...BANDS, "LIVE"].map((b) => {
-                const on = b === "LIVE" ? override === null : override === b;
-                return (
-                  <button
-                    key={b}
-                    onClick={() => setOverride(b === "LIVE" ? null : override === b ? null : b)}
-                    className="pill lowercase"
-                    style={{
-                      color: on ? "var(--accent-800)" : "var(--n-500)",
-                      background: on ? "var(--accent-100)" : "transparent",
-                    }}
-                  >
-                    {b.toLowerCase()}
-                  </button>
-                );
-              })}
-            </div>
-          )}
 
           <div className="mt-4 flex items-center justify-between pt-2">
             {claims.role === "admin" ? (
