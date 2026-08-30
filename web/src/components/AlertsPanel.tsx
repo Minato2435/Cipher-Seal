@@ -8,32 +8,34 @@ function ts(v: unknown): string {
 }
 
 export function AlertsPanel({ alerts }: { alerts: Doc[] }) {
-  // acknowledge is functions-only to persist; for the demo it's local-only.
   const [acked, setAcked] = useState<Set<string>>(new Set());
   const open = alerts.filter((a) => !a.acknowledged && !acked.has(a.id));
 
   return (
-    <section className="flex flex-col border border-ink/15 bg-white/70">
-      <header className="border-b border-ink/10 px-4 py-2">
-        <h2 className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-soft">
+    <section className="glass flex flex-col overflow-hidden rounded-xl">
+      <header className="border-b border-line px-4 py-2.5">
+        <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-faint">
           alerts · {open.length}
         </h2>
       </header>
       <div className="min-h-[180px] max-h-64 flex-1 space-y-2 overflow-y-auto p-3">
         {open.length === 0 ? (
-          <div className="grid h-[160px] place-items-center text-center">
-            <p className="text-sm text-ink-soft">Nothing needs attention.</p>
+          <div className="grid h-[160px] place-items-center">
+            <p className="text-[13px] text-faint">Nothing needs attention.</p>
           </div>
         ) : (
           open.map((a) => (
-            <div key={a.id} className="border border-critical/45 bg-critical/[0.04] p-3">
-              <p className="text-[13px] text-ink">{(a.reason as string) ?? "risk escalation"}</p>
-              <p className="mt-1 font-mono text-[11px] text-ink-soft">
-                {middleTruncate((a.uid as string) ?? "", 16)} · {ts(a.ts)}
+            <div
+              key={a.id}
+              className="rounded-lg border border-risk-critical/45 bg-risk-critical/[0.07] p-3"
+            >
+              <p className="text-[13px] text-text">{(a.reason as string) ?? "risk escalation"}</p>
+              <p className="mt-1 font-mono text-[10.5px] text-faint">
+                {middleTruncate((a.uid as string) ?? "", 14)} · {ts(a.ts)}
               </p>
               <button
                 onClick={() => setAcked((s) => new Set(s).add(a.id))}
-                className="mt-2 border border-ink/25 px-2 py-0.5 font-mono text-[11px] hover:border-ink/50"
+                className="mt-2 rounded-md border border-line px-2 py-0.5 font-mono text-[11px] text-muted hover:border-violet/50 hover:text-text"
               >
                 acknowledge
               </button>

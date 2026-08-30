@@ -31,30 +31,31 @@ export function Admin() {
     const u = users.find((x) => x.id === selectedUid);
     return u
       ? (u.displayName as string) || (u.email as string) || (selectedUid ?? "")
-      : "no user selected";
+      : "no person selected";
   }, [users, selectedUid]);
 
-  const activeSessions = 0; // sessions list is participant-scoped; count omitted for admins
+  const openAlerts = alerts.filter((a) => !a.acknowledged).length;
 
   return (
     <RiskFrame band={myRisk.band}>
-      <main className="lattice-ground min-h-screen px-6 pb-16 pt-12 md:px-10">
+      <main className="min-h-screen px-5 pb-16 pt-14 md:px-10">
         <div className="mx-auto max-w-6xl">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-soft">
+              <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-cyan">
                 quantum-safe communication
               </p>
-              <h1 className="mt-1 font-display text-5xl leading-none text-ink">Security monitor</h1>
-              <p className="mt-2 font-mono text-[12px] text-ink-soft">
-                {users.length} users
-                {activeSessions ? ` · ${activeSessions} active sessions` : ""} ·{" "}
-                {alerts.filter((a) => !a.acknowledged).length} open alerts
+              <h1 className="mt-1.5 font-display text-[46px] font-semibold leading-none text-text">
+                Security monitor
+              </h1>
+              <p className="mt-2 font-mono text-[12px] text-faint">
+                {users.length} accounts · {openAlerts} open{" "}
+                {openAlerts === 1 ? "alert" : "alerts"}
               </p>
             </div>
             <Link
               to="/"
-              className="mt-1 inline-flex items-center gap-1.5 border border-ink/20 px-2.5 py-1 font-mono text-[12px] text-ink hover:border-ink/50"
+              className="mt-1 inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 font-mono text-[12px] text-text transition hover:border-violet/50"
             >
               <span aria-hidden>←</span> chat
             </Link>

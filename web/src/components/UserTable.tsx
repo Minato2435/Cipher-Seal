@@ -1,8 +1,16 @@
 import { useState } from "react";
 import { api, ApiError } from "../lib/api";
-import { bandColor, middleTruncate } from "../lib/format";
+import { middleTruncate } from "../lib/format";
 import type { Doc } from "../lib/useCollection";
+import { Avatar } from "./Avatar";
 import { StatusChip } from "./StatusChip";
+
+const HUE: Record<string, string> = {
+  NORMAL: "#5B6478",
+  ELEVATED: "#F2A93B",
+  HIGH: "#F26430",
+  CRITICAL: "#F03D5F",
+};
 
 interface Row {
   uid: string;
@@ -47,7 +55,7 @@ export function UserTable({
 }) {
   const rows = join(users, risks);
   const [busy, setBusy] = useState<string | null>(null);
-  const [err, setErr] = useState<string>("");
+  const [err, setErr] = useState("");
 
   async function setStatus(uid: string, status: "normal" | "blocked") {
     setBusy(uid);
@@ -62,17 +70,17 @@ export function UserTable({
   }
 
   return (
-    <section className="border border-ink/15 bg-white/70">
-      <header className="flex items-baseline justify-between border-b border-ink/10 px-4 py-2">
-        <h2 className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-soft">
-          users · {rows.length}
+    <section className="glass overflow-hidden rounded-xl">
+      <header className="flex items-baseline justify-between border-b border-line px-4 py-2.5">
+        <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-faint">
+          people · {rows.length}
         </h2>
-        {err && <span className="font-mono text-[11px] text-high">{err}</span>}
+        {err && <span className="font-mono text-[11px] text-risk-high">{err}</span>}
       </header>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] text-[13px]">
+        <table className="w-full min-w-[760px] text-[13px]">
           <thead>
-            <tr className="border-b border-ink/10 text-left font-mono text-[10px] uppercase tracking-wider text-ink-soft">
+            <tr className="border-b border-line text-left font-mono text-[10px] uppercase tracking-wider text-faint">
               <th className="px-4 py-2 font-normal">person</th>
               <th className="px-2 py-2 font-normal">id</th>
               <th className="px-2 py-2 font-normal">role</th>
@@ -84,8 +92,8 @@ export function UserTable({
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-sm text-ink-soft">
-                  No users yet.
+                <td colSpan={6} className="px-4 py-8 text-center text-[13px] text-faint">
+                  No accounts yet.
                 </td>
               </tr>
             )}
@@ -93,34 +101,37 @@ export function UserTable({
               <tr
                 key={r.uid}
                 onClick={() => onSelect(r.uid)}
-                className={`cursor-pointer border-b border-ink/5 last:border-0 ${
-                  selectedUid === r.uid ? "bg-paper" : "hover:bg-paper/60"
+                className={`cursor-pointer border-b border-line/60 last:border-0 transition ${
+                  selectedUid === r.uid ? "bg-violet/10" : "hover:bg-white/[.03]"
                 }`}
               >
-                <td className="px-4 py-2">
-                  <div className="text-ink">{r.displayName}</div>
-                  <div className="font-mono text-[11px] text-ink-soft">{r.email}</div>
+                <td className="px-4 py-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <Avatar uid={r.uid} name={r.displayName} size={28} />
+                    <div className="min-w-0">
+                      <div className="truncate text-text">{r.displayName}</div>
+                      <div className="truncate font-mono text-[10.5px] text-faint">{r.email}</div>
+                    </div>
+                  </div>
                 </td>
-                <td className="px-2 py-2 font-mono text-[11px] text-ink-soft">
-                  {middleTruncate(r.uid, 14)}
+                <td className="px-2 py-2.5 font-mono text-[10.5px] text-faint">
+                  {middleTruncate(r.uid, 12)}
                 </td>
-                <td className="px-2 py-2">
+                <td className="px-2 py-2.5">
                   {r.role === "admin" ? (
-                    <span className="border border-ink/40 px-1.5 py-0.5 font-mono text-[10px]">
-                      admin
-                    </span>
+                    <span className="pill text-cyan">admin</span>
                   ) : (
-                    <span className="font-mono text-[11px] text-ink-soft">user</span>
+                    <span className="font-mono text-[11px] text-faint">user</span>
                   )}
                 </td>
-                <td className="px-2 py-2">
+                <td className="px-2 py-2.5">
                   <StatusChip status={r.status} />
                 </td>
-                <td className="px-2 py-2 font-mono text-[12px]">
-                  <span style={{ color: bandColor(r.band) }}>{r.band.toLowerCase()}</span>{" "}
-                  <span className="text-ink-soft">{r.score.toFixed(2)}</span>
+                <td className="px-2 py-2.5 font-mono text-[12px]">
+                  <span style={{ color: HUE[r.band] ?? HUE.NORMAL }}>{r.band.toLowerCase()}</span>{" "}
+                  <span className="text-faint">{r.score.toFixed(2)}</span>
                 </td>
-                <td className="px-4 py-2 text-right">
+                <td className="px-4 py-2.5 text-right">
                   <div className="inline-flex gap-2">
                     {r.status === "blocked" ? (
                       <button
@@ -129,7 +140,7 @@ export function UserTable({
                           void setStatus(r.uid, "normal");
                         }}
                         disabled={busy === r.uid}
-                        className="border border-critical/50 px-2 py-0.5 font-mono text-[11px] text-critical disabled:opacity-50"
+                        className="rounded-md border border-risk-critical/50 px-2 py-0.5 font-mono text-[11px] text-risk-critical disabled:opacity-50"
                       >
                         {busy === r.uid ? "…" : "unblock"}
                       </button>
@@ -140,7 +151,7 @@ export function UserTable({
                           void setStatus(r.uid, "blocked");
                         }}
                         disabled={busy === r.uid}
-                        className="border border-ink/25 px-2 py-0.5 font-mono text-[11px] text-ink-soft hover:border-critical/50 hover:text-critical disabled:opacity-50"
+                        className="rounded-md border border-line px-2 py-0.5 font-mono text-[11px] text-faint transition hover:border-risk-critical/50 hover:text-risk-critical disabled:opacity-50"
                       >
                         {busy === r.uid ? "…" : "block"}
                       </button>
@@ -150,7 +161,7 @@ export function UserTable({
                         e.stopPropagation();
                         onSimulate(r.uid);
                       }}
-                      className="border border-ink/25 px-2 py-0.5 font-mono text-[11px] text-ink hover:border-ink/50"
+                      className="rounded-md border border-line px-2 py-0.5 font-mono text-[11px] text-muted transition hover:border-violet/50 hover:text-text"
                     >
                       simulate ▾
                     </button>
