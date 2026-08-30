@@ -27,7 +27,11 @@ def _wipe(db):
 
 
 @pytest.fixture(autouse=True)
-def _prefixed_collections(db):
+def _prefixed_collections(request):
+    if "db" not in request.fixturenames:
+        yield
+        return
+    db = request.getfixturevalue("db")
     _wipe(db)
     yield
     _wipe(db)

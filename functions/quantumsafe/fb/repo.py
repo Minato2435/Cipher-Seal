@@ -54,9 +54,14 @@ def query_recent_events(db, uid: str, since_ts_epoch: float) -> list[dict]:
 
 
 def query_active_sessions_for(db, uid: str) -> list[tuple[str, dict]]:
-    q = (
-        db.collection(collection("sessions"))
-        .where(filter=FieldFilter("participants", "array_contains", uid))
-        .where(filter=FieldFilter("state", "==", "active"))
+    base = db.collection(collection("sessions")).where(
+        filter=FieldFilter("participants", "array_contains", uid)
     )
-    return [(d.id, d.to_dict()) for d in q.stream()]
+    try:
+        q = base.where(filter=FieldFilter("state", "==", "active"))
+        return [(d.id, d.to_dict()) for d in q.stream()]
+    except FailedPrecondition:
+        # Composite (participants, state) index not present for this collection
+        # group (e.g. the per-session test_<uuid>_ prefix). Filter client-side.
+        rows = [(d.id, d.to_dict()) for d in base.stream()]
+        return [(i, r) for i, r in rows if r.get("state") == "active"]
