@@ -6,7 +6,7 @@ import functools
 import json
 import urllib.request
 
-from firebase_functions import firestore_fn, https_fn
+from firebase_functions import firestore_fn, https_fn, options
 from firebase_functions.params import SecretParam
 
 from quantumsafe.fb import enforcement, identity, messaging, repo, scoring, sessions, simulation
@@ -24,7 +24,9 @@ _ensure_app()
 APP_SECRET = SecretParam("APP_SECRET")
 WEB_API_KEY = "AIzaSyCKr9ISLAHwCKCMcmrgGhxpxBa7dSKqYYA"  # public by design
 
-_CALL = {"region": REGION, "secrets": [APP_SECRET]}
+# Every function transitively imports the risk-scoring stack (scikit-learn +
+# numpy + scipy), which needs well over the 256 MiB default just to import.
+_CALL = {"region": REGION, "secrets": [APP_SECRET], "memory": options.MemoryOption.MB_512}
 
 
 def _require_auth(req: https_fn.CallableRequest) -> str:
@@ -159,6 +161,8 @@ def admin_set_status(req: https_fn.CallableRequest):
     database=DATABASE,
     region=REGION,
     secrets=[APP_SECRET],
+    # Runs Isolation-Forest inference on every event — give it headroom.
+    memory=options.MemoryOption.GB_1,
     # Serialise trigger invocations: a simulated-attack burst writes up to 40
     # events, and concurrent rescore/apply_policy runs against one riskScores
     # doc produce a non-deterministic end state.
