@@ -29,6 +29,13 @@ def load_model() -> RiskModel:
 def rescore_user(db, uid: str, now: float | None = None) -> tuple[RiskAssessment, str]:
     now = time.time() if now is None else now
     window = events.load_events_window(db, uid, now, DEFAULT_WINDOW_SECONDS)
+    # load_events_window tolerates a little clock skew (Firestore's commit clock
+    # runs ahead of ours), so a just-written event can sit a few hundred ms past
+    # `now`. extract_features applies its own `ts <= now` cut, so advance the
+    # feature clock to the newest event we actually have — otherwise a rescore
+    # fired straight after a write silently drops its most recent events.
+    if window:
+        now = max(now, max(e.ts for e in window))
     feats = extract_features(window, now=now, window_seconds=DEFAULT_WINDOW_SECONDS)
     try:
         model_score = load_model().raw_score(features_to_vector(feats))

@@ -7,6 +7,14 @@ from datetime import datetime, timezone
 from quantumsafe.fb import repo
 from quantumsafe.security.events import VALID_TYPES, SecurityEvent
 
+# Firestore SERVER_TIMESTAMP is stamped on Google's clock at commit time, which
+# routinely runs a few hundred milliseconds ahead of this process's clock. A
+# rescore that fires right after a write (the on_security_event trigger, or the
+# simulated-attack burst) would otherwise discard those just-written events as
+# "in the future" and lose their signal — the SIM_ATTACK marker included. Allow
+# a small skew margin here; timestamps implausibly far ahead are still rejected.
+_CLOCK_SKEW_TOLERANCE_S = 30.0
+
 
 def record_event(db, uid: str, event_type: str, meta: dict | None = None) -> str:
     if event_type not in VALID_TYPES:
@@ -35,7 +43,7 @@ def load_events_window(db, uid: str, now: float, window_seconds: float) -> list[
     out: list[SecurityEvent] = []
     for r in rows:
         epoch = _to_epoch(r.get("ts"))
-        if epoch is None or epoch > now:
+        if epoch is None or epoch > now + _CLOCK_SKEW_TOLERANCE_S:
             continue
         out.append(SecurityEvent(uid=r["uid"], type=r["type"], ts=epoch, meta=dict(r.get("meta") or {})))
     return out
