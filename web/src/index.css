@@ -20,11 +20,25 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* the lattice ground: a faint square point-grid */
+/* the lattice ground: two offset point-grids so it reads as a lattice, not a
+   plain square grid — a denser primary and a fainter shifted echo */
 .lattice-ground {
-  background-image: radial-gradient(rgba(91, 100, 112, 0.28) 1px, transparent 1.4px);
-  background-size: 26px 26px;
-  background-position: -13px -13px;
+  background-color: #edf0f3;
+  background-image:
+    radial-gradient(rgba(20, 24, 31, 0.15) 1px, transparent 1.6px),
+    radial-gradient(rgba(20, 24, 31, 0.08) 1px, transparent 1.6px);
+  background-size:
+    30px 30px,
+    30px 30px;
+  background-position:
+    0 0,
+    13px 16px;
+}
+
+/* a lit instrument surface set into the paper */
+.lit {
+  background: #0b1220;
+  color: #cdd6e4;
 }
 
 *:focus-visible {

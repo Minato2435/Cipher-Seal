@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth } from "../lib/firebase";
+import { middleTruncate } from "../lib/format";
 import { useAuthUser } from "../lib/useAuthUser";
 import { useRiskBand } from "../lib/useRiskBand";
 import { useSessions } from "../lib/useSessions";
@@ -12,6 +13,7 @@ import { SessionList } from "../components/SessionList";
 import { StartSession } from "../components/StartSession";
 import { MessageThread } from "../components/MessageThread";
 import { Composer } from "../components/Composer";
+import { EmptyThread } from "../components/EmptyThread";
 
 const BANDS = ["NORMAL", "ELEVATED", "HIGH", "CRITICAL"];
 
@@ -37,83 +39,93 @@ export function Chat() {
     if (!user) return;
     await navigator.clipboard.writeText(user.uid);
     setCopied(true);
-    setTimeout(() => setCopied(false), 1200);
+    setTimeout(() => setCopied(false), 1400);
   }
 
   return (
     <RiskFrame band={band}>
       <div className="lattice-ground flex h-screen">
-        <aside className="flex w-[300px] shrink-0 flex-col border-r border-ink-soft/30 bg-paper/70 px-5 py-6">
+        <aside className="flex w-[304px] shrink-0 flex-col gap-5 border-r border-ink/15 bg-paper/60 px-5 pb-5 pt-12 backdrop-blur-[1px]">
+          {/* identity */}
           <div>
-            <p className="font-display text-2xl leading-tight text-ink">{displayName}</p>
+            <p className="font-display text-[26px] leading-tight text-ink">{displayName}</p>
             <p className="truncate font-mono text-[11px] text-ink-soft">{user?.email}</p>
             <button
               onClick={copyId}
-              className="mt-1 block max-w-full truncate font-mono text-[11px] text-ink-soft underline decoration-dotted"
+              className="group mt-2 flex w-full items-center gap-1.5 border border-ink/15 bg-white/70 px-2 py-1 font-mono text-[11px] text-ink-soft transition hover:border-ink/40"
               title="Copy your user ID"
             >
-              your id: {copied ? "copied ✓" : user?.uid}
+              <span className="text-ink-soft/70">id</span>
+              <span className="flex-1 truncate text-left text-ink">
+                {copied ? "copied ✓" : middleTruncate(user?.uid ?? "", 22)}
+              </span>
+              <span aria-hidden className="text-ink-soft/60 group-hover:text-ink">⧉</span>
             </button>
           </div>
 
-          <div className="mt-5">
-            <StartSession onStarted={setSelectedId} />
+          {/* sessions */}
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="flex items-center justify-between">
+              <h2 className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-soft">
+                sessions
+              </h2>
+              <StartSession onStarted={setSelectedId} />
+            </div>
+            <div className="mt-2 min-h-0 flex-1 overflow-y-auto border-t border-ink/10 pt-2">
+              {user && (
+                <SessionList
+                  sessions={sessions}
+                  meUid={user.uid}
+                  selectedId={selectedId}
+                  onSelect={setSelectedId}
+                />
+              )}
+            </div>
           </div>
 
-          <div className="mt-4 flex-1 overflow-y-auto border-t border-ink-soft/30 pt-3">
-            {user && (
-              <SessionList
-                sessions={sessions}
-                meUid={user.uid}
-                selectedId={selectedId}
-                onSelect={setSelectedId}
-              />
-            )}
-          </div>
-
-          <div className="mt-3 border-t border-ink-soft/30 pt-3">
-            <RiskInstrument risk={risk} />
-          </div>
+          {/* the lit instrument */}
+          <RiskInstrument risk={risk} />
 
           {import.meta.env.DEV && (
-            <div className="mt-3 border-t border-dashed border-ink-soft/40 pt-2">
-              <p className="font-mono text-[10px] uppercase tracking-widest text-ink-soft">
+            <div>
+              <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-ink-soft/70">
                 dev · preview band
               </p>
               <div className="mt-1 flex flex-wrap gap-1">
-                {BANDS.map((b) => (
-                  <button
-                    key={b}
-                    onClick={() => setOverride(b === band ? null : b)}
-                    className="border border-ink-soft/50 px-1.5 py-0.5 font-mono text-[10px] hover:bg-white"
-                  >
-                    {b.toLowerCase()}
-                  </button>
-                ))}
-                <button
-                  onClick={() => setOverride(null)}
-                  className="border border-ink-soft/50 px-1.5 py-0.5 font-mono text-[10px] hover:bg-white"
-                >
-                  live
-                </button>
+                {[...BANDS, "LIVE"].map((b) => {
+                  const on = b === "LIVE" ? override === null : override === b;
+                  return (
+                    <button
+                      key={b}
+                      onClick={() => setOverride(b === "LIVE" ? null : override === b ? null : b)}
+                      className={`border px-1.5 py-0.5 font-mono text-[10px] lowercase transition ${
+                        on ? "border-ink bg-ink text-paper" : "border-ink/25 hover:border-ink/50"
+                      }`}
+                    >
+                      {b.toLowerCase()}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
 
-          <div className="mt-3 flex items-center justify-between border-t border-ink-soft/30 pt-3 font-mono text-[11px]">
+          {/* footer */}
+          <div className="flex items-center justify-between border-t border-ink/10 pt-3 font-mono text-[11px]">
             {claims.role === "admin" ? (
-              <Link to="/admin" className="underline">
+              <Link to="/admin" className="text-ink underline decoration-dotted">
                 security monitor
               </Link>
             ) : (
               <span />
             )}
-            <button onClick={() => signOut(auth)} className="text-ink-soft underline">
+            <button onClick={() => signOut(auth)} className="text-ink-soft underline decoration-dotted">
               sign out
             </button>
           </div>
         </aside>
 
+        {/* main */}
         <main className="flex min-w-0 flex-1 flex-col">
           {selected && user ? (
             <>
@@ -123,9 +135,7 @@ export function Chat() {
               <Composer session={selected} />
             </>
           ) : (
-            <div className="grid flex-1 place-items-center px-8">
-              <p className="font-display text-3xl text-ink-soft">Pick a session, or start one.</p>
-            </div>
+            <EmptyThread />
           )}
         </main>
       </div>
