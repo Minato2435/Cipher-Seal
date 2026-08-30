@@ -21,3 +21,7 @@ functions/.secret.local
 .firebase/
 firebase-debug.log
 functions/venv/
+
+# web
+web/node_modules/
+web/dist/
