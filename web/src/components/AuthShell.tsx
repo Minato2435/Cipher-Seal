@@ -5,7 +5,6 @@ export function AuthShell({ mode, children }: { mode: "signin" | "register"; chi
   return (
     <div className="frame-outer">
       <div className="risk-frame">
-        <div className="risk-plate">Calm</div>
         <div className="auth-wrap">
           <svg
             width="52"
